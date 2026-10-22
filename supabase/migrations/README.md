@@ -1,0 +1,1 @@
+-- Aplicado via MCP em 2026-10-21 (projeto pcugkjrocilpvutvsfot). Veja o histórico com 'supabase migration list'.
