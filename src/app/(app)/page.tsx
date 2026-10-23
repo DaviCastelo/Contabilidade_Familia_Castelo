@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Check, TriangleAlert, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, CreditCard, TriangleAlert, TrendingDown, TrendingUp } from "lucide-react";
 import { getFamilyContext, getCategories, rootCategory } from "@/lib/family";
-import { brl, monthRange, currentMonth, monthLabel } from "@/lib/format";
+import { brl, monthRange, currentMonth, monthLabel, dateBR } from "@/lib/format";
+import { loadFinance } from "@/lib/ops";
 import MonthPicker from "@/components/MonthPicker";
 import Amount from "@/components/Amount";
 import { DonutWithLegend, MonthlyBars } from "@/components/Charts";
@@ -20,13 +21,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { supabase, family } = await getFamilyContext();
 
   // um único select cobre o mês atual, o anterior e o gráfico de 6 meses
-  const [categories, { data: history }, { data: budgets }, { data: investments }, { data: accounts }, { data: allTx }, { count: budgetCount }] = await Promise.all([
+  const [categories, { data: history }, { data: budgets }, fin, { data: accounts }, { data: allTx }, { count: budgetCount }] = await Promise.all([
     getCategories(),
     supabase.from("transactions").select("kind, amount, category_id, description, occurred_on").eq("family_id", family.id).gte("occurred_on", `${sixAgo}-01`).lt("occurred_on", end),
     supabase.from("budgets").select("category_id, amount").eq("family_id", family.id).eq("month", start),
-    supabase.from("investments").select("current_value").eq("family_id", family.id),
+    loadFinance(supabase, family.id, 3),
     supabase.from("accounts").select("initial_balance").eq("family_id", family.id),
-    supabase.from("transactions").select("kind, amount").eq("family_id", family.id),
+    supabase.from("transactions").select("id").eq("family_id", family.id).limit(10),
     supabase.from("budgets").select("id", { count: "exact", head: true }).eq("family_id", family.id),
   ]);
 
@@ -76,10 +77,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     };
   });
 
-  const invested = sum((investments ?? []).map((i) => ({ amount: i.current_value })));
-  const cash = sum((accounts ?? []).map((a) => ({ amount: a.initial_balance })))
-    + sum((allTx ?? []).filter((t) => t.kind === "income")) - sum((allTx ?? []).filter((t) => t.kind === "expense"));
+  const nextBills = fin.invoices.filter((i) => i.dueDate > fin.today && i.total > 0).slice(0, 3);
   const budgetTotal = sum(budgets ?? []);
+  // compara só o que foi gasto nas categorias que têm orçamento
+  const budgetUsed = (budgets ?? []).reduce((s, b) => s + (nowByRoot.get(b.category_id) ?? 0), 0);
   const biggest = [...expenses].sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 5);
 
   const steps = [
@@ -148,17 +149,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <section className="rise card flex flex-wrap items-end justify-between gap-4 border-ink/15">
         <div>
           <p className="label">Patrimônio da família</p>
-          <p className="display money text-4xl font-semibold sm:text-5xl">{brl(cash + invested)}</p>
+          <p className="display money text-4xl font-semibold sm:text-5xl">{brl(fin.patrimony)}</p>
         </div>
         <p className="text-sm text-muted">
-          <span className="money text-ink">{brl(cash)}</span> em contas · <span className="money text-ink">{brl(invested)}</span> investidos
+          <span className="money text-ink">{brl(fin.liquid)}</span> em contas · <span className="money text-ink">{brl(fin.invested)}</span> investidos
+          {fin.cardDebt > 0 && <> · <span className="money text-loss">−{brl(fin.cardDebt)}</span> em cartões</>}
         </p>
+      </section>
+
+      <section className="rise card" aria-label="Previsão de saldo">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="display flex items-center gap-2 text-lg font-semibold"><CalendarClock className="h-5 w-5 text-gold" aria-hidden />Previsão de saldo nas contas</h2>
+          <span className="text-xs text-muted">conta lançamentos futuros, parcelas, recorrentes e faturas</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {fin.forecast.map((f, i) => (
+            <div key={f.month} className={`rounded-lg px-4 py-3 ${i === 0 ? "bg-gold-soft" : "bg-sunken"}`}>
+              <p className="text-xs text-muted">{i === 0 ? "Fim deste mês" : `Fim de ${monthLabel(f.month).split(" ")[0]}`}</p>
+              <p className={`money text-xl font-medium ${f.endBalance < 0 ? "text-loss" : "text-ink"}`}>{brl(f.endBalance)}</p>
+              <p className="money text-[11px] text-muted">+{brl(f.income)} · −{brl(f.expense)}{f.cardBills ? ` · faturas −${brl(f.cardBills)}` : ""}</p>
+            </div>
+          ))}
+        </div>
+        {nextBills.length > 0 && (
+          <ul className="mt-3 flex flex-wrap gap-2 text-xs">
+            {nextBills.map((b) => (
+              <li key={b.cardId + b.dueDate}>
+                <Link href="/cartoes" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-line px-2.5 hover:bg-sunken">
+                  <CreditCard className="h-3.5 w-3.5 text-gold" aria-hidden />
+                  {fin.accounts.find((a) => a.id === b.cardId)?.name} vence {dateBR(b.dueDate)}: <span className="money font-medium">{brl(b.total)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Ganhos no mês" value={brl(income)} tone="text-gain" delay={60} />
         <Stat label="Gastos no mês" value={brl(expense)} tone="text-loss" delay={120}
-          hint={budgetTotal ? `${Math.round((expense / budgetTotal) * 100)}% do orçamento de ${brl(budgetTotal)}` : undefined} />
+          hint={budgetTotal ? `${Math.round((budgetUsed / budgetTotal) * 100)}% do orçamento usado (${brl(budgetUsed)} de ${brl(budgetTotal)})` : undefined} />
         <Stat label="Sobrou no mês" value={brl(balance)} tone={balance >= 0 ? "text-ink" : "text-loss"} delay={180} />
       </div>
 

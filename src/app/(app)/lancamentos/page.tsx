@@ -1,5 +1,7 @@
 import { getFamilyContext, getCategories, getFormOptions, categoryLabel, rootCategory } from "@/lib/family";
-import { brl, monthRange, currentMonth, PAYMENT_METHODS } from "@/lib/format";
+import Link from "next/link";
+import { Repeat } from "lucide-react";
+import { brl, monthRange, currentMonth, PAYMENT_METHODS, localISODate } from "@/lib/format";
 import MonthPicker from "@/components/MonthPicker";
 import TransactionList, { type Row } from "./TransactionList";
 
@@ -12,7 +14,7 @@ export default async function LancamentosPage({ searchParams }: { searchParams: 
     getCategories(),
     getFormOptions(),
     supabase.from("transactions")
-      .select("id, kind, amount, occurred_on, description, category_id, account_id, member_id, payment_method")
+      .select("id, kind, amount, occurred_on, description, category_id, account_id, member_id, payment_method, recurring_id, installment_group, installment_number, installment_total")
       .eq("family_id", family.id).gte("occurred_on", start).lt("occurred_on", end)
       .order("occurred_on", { ascending: false }).order("created_at", { ascending: false }),
   ]);
@@ -44,7 +46,10 @@ export default async function LancamentosPage({ searchParams }: { searchParams: 
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="display text-3xl font-semibold">Lançamentos</h1>
-        <MonthPicker month={month} />
+        <div className="flex items-center gap-2">
+          <Link href="/recorrentes" className="btn-ghost"><Repeat className="h-4 w-4" aria-hidden /> Recorrentes</Link>
+          <MonthPicker month={month} />
+        </div>
       </div>
 
       <dl className="card grid grid-cols-3 p-0 text-sm">
@@ -60,7 +65,7 @@ export default async function LancamentosPage({ searchParams }: { searchParams: 
         ))}
       </dl>
 
-      <TransactionList rows={rows} options={options} rootCategories={roots} />
+      <TransactionList rows={rows} options={options} rootCategories={roots} today={localISODate()} />
     </div>
   );
 }

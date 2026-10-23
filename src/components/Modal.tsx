@@ -14,7 +14,7 @@ export default function Modal({ open, onClose, title, children }: {
     if (open && !d.open) {
       d.showModal();
       // foca o primeiro campo (ex.: valor) para já sair digitando
-      d.querySelector<HTMLElement>("input:not([type=hidden]), select, textarea")?.focus();
+      (d.querySelector<HTMLElement>("[data-autofocus]") ?? d.querySelector<HTMLElement>("input:not([type=hidden]), select, textarea"))?.focus();
     }
     if (!open && d.open) d.close();
   }, [open]);

@@ -6,7 +6,10 @@ import { TopNav, BottomNav } from "@/components/NavLinks";
 import Logo from "@/components/Logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [{ family, me }, options] = await Promise.all([getFamilyContext(), getFormOptions()]);
+  const { supabase, family, me } = await getFamilyContext();
+  // gera os lançamentos recorrentes que já venceram (idempotente)
+  await supabase.rpc("materialize_recurring", { p_family: family.id });
+  const options = await getFormOptions();
   return (
     <div className="min-h-screen pb-20 md:pb-0">
       <header className="border-b border-line bg-surface">

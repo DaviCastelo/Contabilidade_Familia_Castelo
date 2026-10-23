@@ -17,6 +17,8 @@ export default function TransactionForm({ options, initial, onDone, card = true 
 }) {
   const { categories, accounts, members, myId } = options;
   const [kind, setKind] = useState<"expense" | "income">(initial?.kind ?? "expense");
+  const [frequency, setFrequency] = useState<"once" | "installments" | "monthly">("once");
+  const installments = kind === "expense" && frequency === "installments";
   const today = localISODate();
 
   return (
@@ -51,16 +53,30 @@ export default function TransactionForm({ options, initial, onDone, card = true 
           );
         })}
       </div>
-      <Field label="Valor (R$)">
+      {!initial && (
+        <Field label="Repetição">
+          <select name="frequency" value={installments || frequency === "monthly" ? frequency : "once"} onChange={(e) => setFrequency(e.target.value as typeof frequency)} className="input">
+            <option value="once">Só esta vez</option>
+            {kind === "expense" && <option value="installments">Parcelada</option>}
+            <option value="monthly">Todo mês (recorrente)</option>
+          </select>
+        </Field>
+      )}
+      {installments && (
+        <Field label="Nº de parcelas">
+          <input name="installments" type="number" inputMode="numeric" min={2} max={72} defaultValue={2} required className="input money" />
+        </Field>
+      )}
+      <Field label={installments ? "Valor total (R$)" : "Valor (R$)"}>
         <input
           name="amount" type="number" inputMode="decimal" step="0.01" min="0.01" required
-          defaultValue={initial?.amount} autoFocus={!card} className="input money" placeholder="0,00"
+          defaultValue={initial?.amount} data-autofocus className="input money" placeholder="0,00"
         />
       </Field>
-      <Field label="Data">
+      <Field label={frequency === "monthly" && !initial ? "Primeira data" : installments ? "Data da compra" : "Data"}>
         <input name="occurred_on" type="date" defaultValue={initial?.occurred_on ?? today} required className="input" />
       </Field>
-      <Field label="Descrição" className="md:col-span-2">
+      <Field label="Descrição" className={installments || (!initial && frequency !== "once") ? "" : "md:col-span-2"}>
         <input name="description" defaultValue={initial?.description ?? ""} className="input" placeholder="Ex: compras do mês" />
       </Field>
       <Field label="Categoria">

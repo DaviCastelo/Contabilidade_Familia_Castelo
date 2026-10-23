@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, Search, X } from "lucide-react";
+import { CalendarClock, Pencil, Repeat, Search, X } from "lucide-react";
 import Amount from "@/components/Amount";
 import Modal from "@/components/Modal";
-import { DeleteButton } from "@/components/forms";
+import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
 import { brl, localISODate } from "@/lib/format";
 import type { FormOptions } from "@/lib/family";
-import { deleteTransaction } from "../actions";
+import { deleteInstallmentGroup, deleteTransaction } from "../actions";
 import TransactionForm, { type EditableTransaction } from "./TransactionForm";
 
 export type Row = EditableTransaction & {
+  recurring_id: string | null; installment_group: string | null; installment_number: number | null; installment_total: number | null;
   catLabel: string; catColor: string; rootId: string | null; account: string; member: string; payment: string;
 };
 
@@ -27,8 +28,8 @@ function dayLabel(iso: string) {
 
 const normalize = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-export default function TransactionList({ rows, options, rootCategories }: {
-  rows: Row[]; options: FormOptions; rootCategories: { id: string; name: string }[];
+export default function TransactionList({ rows, options, rootCategories, today }: {
+  rows: Row[]; options: FormOptions; rootCategories: { id: string; name: string }[]; today: string;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -109,7 +110,12 @@ export default function TransactionList({ rows, options, rootCategories }: {
                 <li key={t.id} className="flex items-center gap-3 px-4 py-2">
                   <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: t.catColor }} aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{t.description ?? t.catLabel}</p>
+                    <p className="flex items-center gap-1.5 truncate font-medium">
+                      <span className="truncate">{t.description ?? t.catLabel}</span>
+                      {t.installment_total && <span className="money shrink-0 rounded bg-sunken px-1.5 text-[11px] text-muted">{t.installment_number}/{t.installment_total}</span>}
+                      {t.recurring_id && <Repeat className="h-3.5 w-3.5 shrink-0 text-muted" aria-label="Recorrente" />}
+                      {t.occurred_on > today && <span className="inline-flex shrink-0 items-center gap-1 rounded bg-gold-soft px-1.5 text-[11px] text-gold"><CalendarClock className="h-3 w-3" aria-hidden />previsto</span>}
+                    </p>
                     <p className="truncate text-xs text-muted">
                       {t.catLabel} · {t.member}<span className="hidden md:inline"> · {t.account} · {t.payment}</span>
                     </p>
@@ -130,6 +136,13 @@ export default function TransactionList({ rows, options, rootCategories }: {
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Editar lançamento">
         {editing && <TransactionForm options={options} initial={editing} card={false} onDone={() => setEditing(null)} />}
+        {editing?.installment_group && (
+          <ActionForm action={deleteInstallmentGroup} reset={false} onSuccess={() => setEditing(null)} className="mt-4 border-t border-line pt-4">
+            <input type="hidden" name="id" value={editing.installment_group} />
+            <p className="mb-2 text-sm text-muted">Esta é a parcela {editing.installment_number} de {editing.installment_total}. Salvar acima altera só esta parcela.</p>
+            <SubmitButton className="btn-ghost border-loss/40 text-loss" pendingText="Excluindo…">Excluir todas as {editing.installment_total} parcelas</SubmitButton>
+          </ActionForm>
+        )}
       </Modal>
     </section>
   );

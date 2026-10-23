@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import Modal from "./Modal";
 import TransactionForm from "@/app/(app)/lancamentos/TransactionForm";
@@ -9,6 +10,8 @@ import type { FormOptions } from "@/lib/family";
 /** Botão "+" flutuante, presente em todas as telas, para lançar em poucos segundos. */
 export default function QuickAdd({ options }: { options: FormOptions }) {
   const [open, setOpen] = useState(false);
+  // no chat do assistente o botão cobriria o campo de mensagem
+  if (usePathname() === "/assistente") return null;
   return (
     <>
       <button

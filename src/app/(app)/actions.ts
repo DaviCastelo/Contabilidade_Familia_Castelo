@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getFamilyContext } from "@/lib/family";
 import { localISODate } from "@/lib/format";
 import type { ActionResult } from "@/components/forms";
+import { createRecurring, createTransactions } from "@/lib/ops";
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -22,19 +23,79 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
   const { supabase, family } = await getFamilyContext();
   const amount = num(formData, "amount");
   if (!(amount > 0)) return { ok: false, error: "Informe um valor maior que zero." };
-  const kind = str(formData, "kind");
-  const { error } = await supabase.from("transactions").insert({
-    family_id: family.id,
-    kind,
-    amount,
-    occurred_on: str(formData, "occurred_on"),
-    description: str(formData, "description"),
-    category_id: str(formData, "category_id"),
-    account_id: str(formData, "account_id"),
-    member_id: str(formData, "member_id"),
-    payment_method: str(formData, "payment_method"),
-  });
-  return fail(error, "Não foi possível salvar o lançamento") ?? done(kind === "income" ? "Ganho registrado." : "Gasto registrado.");
+  const kind = str(formData, "kind") as "income" | "expense";
+  const occurred_on = str(formData, "occurred_on") ?? localISODate();
+  const frequency = str(formData, "frequency") ?? "once";
+  const common = {
+    kind, amount, description: str(formData, "description"), category_id: str(formData, "category_id"),
+    account_id: str(formData, "account_id"), member_id: str(formData, "member_id"), payment_method: str(formData, "payment_method"),
+  };
+  try {
+    if (frequency === "monthly") {
+      await createRecurring(supabase, family.id, { ...common, day_of_month: Number(occurred_on.slice(8, 10)), start_date: occurred_on });
+      return done("Lançamento recorrente criado. Ele entra sozinho todo mês.");
+    }
+    const installments = frequency === "installments" ? Math.max(2, Math.floor(num(formData, "installments"))) : 1;
+    await createTransactions(supabase, family.id, { ...common, occurred_on, installments });
+    if (installments > 1) return done(`Compra lançada em ${installments} parcelas.`);
+    return done(kind === "income" ? "Ganho registrado." : "Gasto registrado.");
+  } catch (e) {
+    return { ok: false, error: `Não foi possível salvar o lançamento (${(e as Error).message})` };
+  }
+}
+
+export async function deleteInstallmentGroup(formData: FormData): Promise<ActionResult> {
+  const { supabase } = await getFamilyContext();
+  const { error } = await supabase.from("transactions").delete().eq("installment_group", str(formData, "id")!);
+  return fail(error, "Não foi possível excluir as parcelas") ?? done("Parcelamento excluído.");
+}
+
+export async function addRecurring(formData: FormData): Promise<ActionResult> {
+  const { supabase, family } = await getFamilyContext();
+  const amount = num(formData, "amount");
+  if (!(amount > 0)) return { ok: false, error: "Informe um valor maior que zero." };
+  try {
+    await createRecurring(supabase, family.id, {
+      kind: str(formData, "kind") as "income" | "expense", amount,
+      day_of_month: Math.min(31, Math.max(1, Math.floor(num(formData, "day_of_month")))),
+      start_date: str(formData, "start_date") ?? localISODate(), end_date: str(formData, "end_date"),
+      description: str(formData, "description"), category_id: str(formData, "category_id"),
+      account_id: str(formData, "account_id"), member_id: str(formData, "member_id"), payment_method: str(formData, "payment_method"),
+    });
+    return done("Recorrente criado.");
+  } catch (e) {
+    return { ok: false, error: `Não foi possível criar (${(e as Error).message})` };
+  }
+}
+
+export async function updateRecurring(formData: FormData): Promise<ActionResult> {
+  const { supabase } = await getFamilyContext();
+  const patch: Record<string, unknown> = {};
+  if (formData.has("amount")) patch.amount = num(formData, "amount");
+  if (formData.has("day_of_month")) patch.day_of_month = Math.min(31, Math.max(1, Math.floor(num(formData, "day_of_month"))));
+  if (formData.has("active")) patch.active = str(formData, "active") === "true";
+  if (formData.has("end_date")) patch.end_date = str(formData, "end_date");
+  const { error } = await supabase.from("recurring_transactions").update(patch).eq("id", str(formData, "id")!);
+  if (error) return fail(error, "Não foi possível atualizar")!;
+  return done(patch.active === false ? "Recorrente pausado." : patch.active === true ? "Recorrente reativado." : "Recorrente atualizado.");
+}
+
+export async function deleteRecurring(formData: FormData): Promise<ActionResult> {
+  const { supabase } = await getFamilyContext();
+  // os lançamentos já gerados ficam; só para de gerar novos
+  const { error } = await supabase.from("recurring_transactions").delete().eq("id", str(formData, "id")!);
+  return fail(error, "Não foi possível excluir") ?? done("Recorrente excluído. Os lançamentos já feitos continuam.");
+}
+
+export async function updateCard(formData: FormData): Promise<ActionResult> {
+  const { supabase } = await getFamilyContext();
+  const day = (k: string) => (str(formData, k) ? Math.min(31, Math.max(1, Math.floor(num(formData, k)))) : null);
+  const { error } = await supabase.from("accounts").update({
+    closing_day: day("closing_day"), due_day: day("due_day"),
+    credit_limit: str(formData, "credit_limit") ? num(formData, "credit_limit") : null,
+    pay_from_account_id: str(formData, "pay_from_account_id"),
+  }).eq("id", str(formData, "id")!);
+  return fail(error, "Não foi possível salvar o cartão") ?? done("Cartão atualizado.");
 }
 
 export async function updateTransaction(formData: FormData): Promise<ActionResult> {
