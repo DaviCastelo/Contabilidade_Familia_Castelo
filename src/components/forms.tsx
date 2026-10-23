@@ -11,7 +11,7 @@ type Action = (fd: FormData) => Promise<ActionResult>;
 /** Rótulo envolvendo o campo: associação implícita, acessível sem precisar de ids. */
 export function Field({ label, className = "", children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
-    <label className={`block ${className}`}>
+    <label className={`block min-w-0 ${className}`}>
       <span className="label">{label}</span>
       {children}
     </label>

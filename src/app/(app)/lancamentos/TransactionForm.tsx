@@ -123,9 +123,9 @@ export default function TransactionForm({ options, initial, onDone, card = true 
         </select>
       </Field>
       <div className="flex flex-wrap items-center gap-3 md:col-span-4">
-        <label className="btn-ghost cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-gold">
-          <Paperclip className="h-4 w-4" aria-hidden />
-          {fileName ?? (initial?.receipt_path ? "Trocar comprovante" : "Anexar comprovante")}
+        <label className="btn-ghost max-w-full min-w-0 cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-gold">
+          <Paperclip className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="truncate">{fileName ?? (initial?.receipt_path ? "Trocar comprovante" : "Anexar comprovante")}</span>
           <input name="receipt" type="file" accept="image/*,application/pdf" className="sr-only"
             onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
         </label>

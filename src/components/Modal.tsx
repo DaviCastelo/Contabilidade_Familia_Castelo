@@ -19,15 +19,25 @@ export default function Modal({ open, onClose, title, children }: {
     if (!open && d.open) d.close();
   }, [open]);
 
+  // o <dialog> nativo não trava a página de fundo: no celular o dedo arrastava tudo para os lados
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const previous = html.style.overflow;
+    html.style.overflow = "hidden";
+    return () => { html.style.overflow = previous; };
+  }, [open]);
+
   return (
     <dialog
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       aria-label={title}
-      className="m-0 mt-auto w-full max-w-none rounded-t-2xl border border-line bg-surface p-0 text-ink backdrop:bg-ink/40 md:m-auto md:max-w-2xl md:rounded-2xl"
+      className="m-0 mt-auto w-full max-w-[100vw] overflow-hidden rounded-t-2xl border border-line bg-surface p-0 text-ink backdrop:bg-ink/40 md:m-auto md:max-w-2xl md:rounded-2xl"
     >
-      <div className="max-h-[85vh] overflow-y-auto p-5">
+      {/* só rola na vertical: nada de arrastar o formulário para o lado */}
+      <div className="max-h-[85dvh] touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="display text-xl font-semibold">{title}</h2>
           <button type="button" onClick={onClose} className="icon-btn" aria-label="Fechar">
