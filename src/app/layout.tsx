@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${fraunces.variable} ${plex.variable} ${plexMono.variable} antialiased`}>
         <ToastProvider>{children}</ToastProvider>
       </body>

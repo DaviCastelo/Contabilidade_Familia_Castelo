@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export type AuthState = { error?: string; message?: string } | null;
+/** `ok` + `next`: a tela mostra o "Acesso liberado" e navega sozinha. `connection`: falha de rede. */
+export type AuthState = { error?: string; message?: string; ok?: boolean; next?: string; connection?: boolean; email?: string } | null;
 
 async function origin() {
   const h = await headers();
@@ -25,10 +26,11 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
     password: String(formData.get("password")),
   });
   if (error) {
-    if (/not confirmed/i.test(error.message)) return { error: "Confirme seu e-mail pelo link que enviamos antes de entrar." };
-    return { error: "E-mail ou senha incorretos." };
+    const email = String(formData.get("email")); // devolvido para o campo não ser apagado
+    if (/not confirmed/i.test(error.message)) return { error: "Confirme seu e-mail pelo link que enviamos antes de entrar.", email };
+    return { error: "E-mail ou senha incorretos.", email };
   }
-  redirect("/");
+  return { ok: true, next: "/" };
 }
 
 export async function signUp(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -40,7 +42,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   });
   if (error) return { error: friendly(error.message) };
   if (!data.session) return { message: "Conta criada! Abra o link que enviamos ao seu e-mail para confirmar." };
-  redirect("/onboarding");
+  return { ok: true, next: "/onboarding" };
 }
 
 export async function requestPasswordReset(_: AuthState, formData: FormData): Promise<AuthState> {

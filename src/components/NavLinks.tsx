@@ -72,10 +72,3 @@ export function BottomNav() {
     </nav>
   );
 }
-
-export const MORE_LINKS = [
-  { href: "/orcamento", label: "Orçamento", description: "Limites por categoria" },
-  { href: "/investimentos", label: "Investimentos", description: "Carteira, aportes e rendimento" },
-  { href: "/recorrentes", label: "Recorrentes", description: "Salário, aluguel e assinaturas" },
-  { href: "/configuracoes", label: "Ajustes", description: "Família, contas e categorias" },
-];

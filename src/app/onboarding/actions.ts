@@ -1,24 +1,26 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function createFamily(_: { error: string } | null, formData: FormData): Promise<{ error: string } | null> {
+/** `ok`: a tela mostra a Construção concluída e segue para o painel. */
+export type FamilyState = { error?: string; ok?: boolean; connection?: boolean } | null;
+
+export async function createFamily(_: FamilyState, formData: FormData): Promise<FamilyState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_family", {
     family_name: String(formData.get("family_name")),
     member_name: String(formData.get("member_name")),
   });
   if (error) return { error: error.message };
-  redirect("/");
+  return { ok: true };
 }
 
-export async function joinFamily(_: { error: string } | null, formData: FormData): Promise<{ error: string } | null> {
+export async function joinFamily(_: FamilyState, formData: FormData): Promise<FamilyState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("join_family", {
     code: String(formData.get("code")),
     member_name: String(formData.get("member_name")),
   });
-  if (error) return { error: error.message };
-  redirect("/");
+  if (error) return { error: error.message.includes("inválido") ? "Código de convite inválido. Confira com quem criou a família." : error.message };
+  return { ok: true };
 }

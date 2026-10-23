@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import AuthShell from "@/components/AuthShell";
 import { Field } from "@/components/forms";
+import LoadingOverlay, { type OverlayState } from "@/components/loading/Overlay";
+import { markSplashSeen } from "@/components/loading/Splash";
 import { signIn, signUp, requestPasswordReset, type AuthState } from "./actions";
 
 type Mode = "in" | "up" | "reset";
@@ -13,6 +16,10 @@ const COPY: Record<Mode, { title: string; subtitle: string; button: string }> = 
   reset: { title: "Recuperar senha", subtitle: "Enviaremos um link para você criar uma nova senha.", button: "Enviar link" },
 };
 const ACTIONS = { in: signIn, up: signUp, reset: requestPasswordReset };
+const BUILD_COPY = {
+  in: { loading: ["Edificando seu patrimônio", "Conferindo suas credenciais…"], success: "Acesso liberado" },
+  up: { loading: ["Erguendo seu castelo", "Criando sua conta…"], success: "Conta criada" },
+} as const;
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("in");
@@ -20,7 +27,29 @@ export default function LoginPage() {
 }
 
 function AuthForm({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
-  const [state, action, pending] = useActionState<AuthState, FormData>(ACTIONS[mode], null);
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  // falha de rede vira o estado de erro da tela de carregamento, com "Tentar novamente"
+  const [state, action, pending] = useActionState<AuthState, FormData>(async (prev, fd) => {
+    try { return await ACTIONS[mode](prev, fd); } catch { return { connection: true }; }
+  }, null);
+  const [dismissed, setDismissed] = useState<AuthState>(null);
+
+  useEffect(() => {
+    if (!state?.ok) return;
+    markSplashSeen(); // o login já teve a sua animação; não repetir o splash
+    const t = setTimeout(() => router.replace(state.next ?? "/"), 900);
+    return () => clearTimeout(t);
+  }, [state, router]);
+
+  const build = mode === "reset" ? null : BUILD_COPY[mode];
+  let overlay: OverlayState | null = null;
+  if (build && pending) overlay = { phase: "loading", title: build.loading[0], subtitle: build.loading[1] };
+  else if (build && state?.ok) overlay = { phase: "success", title: build.success };
+  else if (state?.connection && dismissed !== state) overlay = {
+    phase: "error", title: "Falha na conexão", subtitle: "Não conseguimos falar com o servidor.",
+    onRetry: () => formRef.current?.requestSubmit(), onClose: () => setDismissed(state),
+  };
   // /login?erro=link: o link do e-mail expirou ou já foi usado
   const [linkError, setLinkError] = useState(false);
   useEffect(() => setLinkError(new URLSearchParams(location.search).get("erro") === "link"), []);
@@ -28,9 +57,10 @@ function AuthForm({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void })
 
   return (
     <AuthShell title={copy.title} subtitle={copy.subtitle}>
-      <form action={action} className="space-y-4">
+      <LoadingOverlay state={overlay} />
+      <form ref={formRef} action={action} className="space-y-4">
         <Field label="E-mail">
-          <input name="email" type="email" autoComplete="email" required className="input" />
+          <input name="email" type="email" autoComplete="email" required defaultValue={state?.email} key={state?.email} className="input" />
         </Field>
         {mode !== "reset" && (
           <Field label="Senha">

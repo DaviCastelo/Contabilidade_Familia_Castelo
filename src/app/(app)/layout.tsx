@@ -4,6 +4,7 @@ import QuickAdd from "@/components/QuickAdd";
 import { signOut } from "@/app/login/actions";
 import { TopNav, BottomNav } from "@/components/NavLinks";
 import Logo from "@/components/Logo";
+import Splash, { splashGuardScript } from "@/components/loading/Splash";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { supabase, family, me } = await getFamilyContext();
@@ -12,6 +13,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const options = await getFormOptions();
   return (
     <div className="min-h-screen pb-20 md:pb-0">
+      <script dangerouslySetInnerHTML={{ __html: splashGuardScript }} />
+      <Splash name={me.display_name} />
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-2">
           <span className="flex items-center gap-2.5">

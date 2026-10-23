@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUp, Check, CircleAlert, LoaderCircle, Plus, Sparkles, X } from "lucide-react";
 import type { DisplayItem } from "@/lib/assistant/agent";
+import { ProsperityOrbit } from "@/components/loading/Animations";
 
 const SUGGESTIONS = [
   "Lança 230 de mercado no pix hoje",
@@ -137,8 +138,8 @@ export default function Chat({ initialId, initialItems, ready }: { initialId: st
             ))}
             {pending && (
               <li className="flex justify-start">
-                <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md bg-sunken px-4 py-2.5 text-sm text-muted">
-                  <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />Pensando…
+                <div className="inline-flex items-center gap-2.5 rounded-2xl rounded-bl-md bg-sunken py-2 pr-4 pl-2.5 text-sm text-muted" role="status">
+                  <ProsperityOrbit size="sm" />Pensando…
                 </div>
               </li>
             )}

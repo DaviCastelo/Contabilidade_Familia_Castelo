@@ -108,3 +108,49 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- carregamentos (Construção, Prosperidade, Luz & Progresso) ---------- */
+.fc-glow { filter: drop-shadow(0 0 12px rgb(227 182 81 / 0.45)); }
+
+/* 1. Construção: o castelo é desenhado traço a traço dentro de um anel */
+.fc-castle-path { stroke-dasharray: 600; stroke-dashoffset: 600; animation: fc-draw 3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.fc-castle-fill { opacity: 0; animation: fc-fill 3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.fc-ring { stroke-dasharray: 283; stroke-dashoffset: 283; transform: rotate(-90deg); transform-origin: 50% 50%; animation: fc-ring 3s ease-in-out infinite; }
+@keyframes fc-draw { 0% { stroke-dashoffset: 600; } 55%, 100% { stroke-dashoffset: 0; } }
+@keyframes fc-fill { 0%, 35% { opacity: 0; transform: translateY(6px); } 60%, 85% { opacity: 1; transform: none; } 95%, 100% { opacity: 0; } }
+@keyframes fc-ring { 0% { stroke-dashoffset: 283; } 80% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+
+/* 2. Prosperidade: aura pulsando e moedas em órbita */
+.fc-aura { animation: fc-aura 2.5s ease-in-out infinite alternate; }
+.fc-orbit { animation: fc-orbit 8s linear infinite; }
+.fc-coin { animation: fc-coin 2s ease-in-out infinite alternate; }
+.fc-twinkle { animation: fc-twinkle 1.5s ease-in-out infinite alternate; }
+@keyframes fc-aura { 0% { transform: scale(0.88); opacity: 0.3; } 100% { transform: scale(1.15); opacity: 0.85; } }
+@keyframes fc-orbit { to { transform: rotate(360deg); } }
+@keyframes fc-coin { 0% { transform: translateY(0) scale(0.95); } 100% { transform: translateY(-6px) scale(1.08); } }
+@keyframes fc-twinkle { 0% { opacity: 0.2; transform: scale(0.7); } 100% { opacity: 1; transform: scale(1.2); } }
+
+/* 3. Luz & Progresso: janelas acendem conforme o progresso real */
+.fc-window { transition: opacity 0.4s ease, fill 0.4s ease, filter 0.4s ease; opacity: 0.15; fill: #1d3b6a; }
+.fc-window[data-on="true"] { opacity: 1; fill: #e3b651; filter: drop-shadow(0 0 6px #e3b651); }
+.fc-door { transition: opacity 0.5s ease, fill 0.5s ease; opacity: 0.2; fill: #1d3b6a; }
+.fc-door[data-on="true"] { opacity: 1; fill: #f6f4ef; filter: drop-shadow(0 0 10px rgb(246 244 239 / 0.8)); }
+
+/* sucesso / erro: o ícone é desenhado */
+.fc-mark-path { stroke-dasharray: 50; stroke-dashoffset: 50; animation: fc-mark 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards; }
+@keyframes fc-mark { to { stroke-dashoffset: 0; } }
+.fc-swap { animation: fc-swap 0.45s cubic-bezier(0.4, 0, 0.2, 1) both; }
+@keyframes fc-swap { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: none; } }
+.fc-fade-out { animation: fc-fade-out 0.45s ease forwards; }
+@keyframes fc-fade-out { to { opacity: 0; visibility: hidden; } }
+
+/* splash só uma vez por sessão; o script inline marca <html> antes da pintura */
+html[data-splash-done] .fc-splash { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fc-splash { display: none; }
+  .fc-castle-path { stroke-dashoffset: 0; }
+  .fc-castle-fill, .fc-mark-path { opacity: 1; stroke-dashoffset: 0; }
+}
+/* barra da Construção: enche em 2,8s e segura perto do fim até a resposta chegar */
+.fc-ring-bar { width: 0; animation: fc-bar 2.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes fc-bar { to { width: 92%; } }

@@ -2,7 +2,8 @@
 
 import { useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ProsperityOrbit } from "./loading/Animations";
 
 const shift = (month: string, delta: number) => {
   const [y, m] = month.split("-").map(Number);
@@ -17,7 +18,7 @@ export default function MonthPicker({ month }: { month: string }) {
   const go = (m: string) => startTransition(() => router.push(`${path}?mes=${m}`));
   return (
     <div className="flex items-center gap-1" aria-busy={pending}>
-      {pending && <LoaderCircle className="h-4 w-4 animate-spin text-muted" aria-label="Carregando mês" />}
+      {pending && <span role="status" aria-label="Carregando mês"><ProsperityOrbit size="sm" /></span>}
       <button type="button" className="icon-btn" onClick={() => go(shift(month, -1))} aria-label="Mês anterior">
         <ChevronLeft className="h-4 w-4" aria-hidden />
       </button>
