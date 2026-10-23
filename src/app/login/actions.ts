@@ -15,7 +15,7 @@ async function origin() {
 const friendly = (msg: string) => {
   if (/rate limit|security purposes/i.test(msg)) return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
   if (/already registered/i.test(msg)) return "Este e-mail já tem conta. Use “Entrar” ou “Esqueci minha senha”.";
-  if (/password/i.test(msg)) return "A senha precisa ter pelo menos 6 caracteres.";
+  if (/weak|should (contain|be)|at least|password/i.test(msg)) return "Senha fraca: use 8 caracteres ou mais, com letra maiúscula, minúscula, número e símbolo.";
   return msg;
 };
 

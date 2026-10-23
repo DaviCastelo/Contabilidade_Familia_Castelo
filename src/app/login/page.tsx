@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import AuthShell from "@/components/AuthShell";
 import { Field } from "@/components/forms";
+import PasswordField from "@/components/PasswordField";
 import LoadingOverlay, { type OverlayState } from "@/components/loading/Overlay";
 import { markSplashSeen } from "@/components/loading/Splash";
 import { signIn, signUp, requestPasswordReset, type AuthState } from "./actions";
@@ -62,11 +63,13 @@ function AuthForm({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void })
         <Field label="E-mail">
           <input name="email" type="email" autoComplete="email" required defaultValue={state?.email} key={state?.email} className="input" />
         </Field>
-        {mode !== "reset" && (
+        {/* login sem regra mínima: senhas antigas, de antes da regra nova, continuam entrando */}
+        {mode === "in" && (
           <Field label="Senha">
-            <input name="password" type="password" autoComplete={mode === "in" ? "current-password" : "new-password"} required minLength={6} className="input" />
+            <input name="password" type="password" autoComplete="current-password" required className="input" />
           </Field>
         )}
+        {mode === "up" && <PasswordField />}
         {linkError && !state && (
           <p role="alert" className="flex gap-2 rounded-lg bg-loss-soft p-3 text-sm"><CircleAlert className="h-4 w-4 shrink-0 text-loss" aria-hidden />O link do e-mail expirou ou já foi usado. Peça um novo em “Esqueci minha senha”.</p>
         )}
