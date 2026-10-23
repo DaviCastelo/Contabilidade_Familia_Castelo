@@ -1,6 +1,6 @@
 import { getFamilyContext } from "@/lib/family";
-import { brl, dateBR, ASSET_TYPES } from "@/lib/format";
-import { AllocationPie } from "@/components/Charts";
+import { brl, dateBR, ASSET_TYPES, localISODate } from "@/lib/format";
+import { ALLOCATION_COLORS, DonutWithLegend, PatrimonyLine } from "@/components/Charts";
 import { ActionForm, DeleteButton, Field, SubmitButton } from "@/components/forms";
 import { addInvestment, addMovement, deleteInvestment, updateInvestmentValue } from "../actions";
 
@@ -8,12 +8,13 @@ const MOVEMENT_LABEL: Record<string, string> = { aporte: "Aporte", resgate: "Res
 
 export default async function InvestimentosPage() {
   const { supabase, family } = await getFamilyContext();
-  const [{ data: investments }, { data: movements }] = await Promise.all([
+  const [{ data: investments }, { data: movements }, { data: snapshots }] = await Promise.all([
     supabase.from("investments").select("id, name, asset_type, institution, current_value, updated_value_at").eq("family_id", family.id).order("name"),
     supabase.from("investment_movements").select("investment_id, kind, amount, occurred_on").eq("family_id", family.id).order("occurred_on", { ascending: false }),
+    supabase.from("investment_values").select("investment_id, value, recorded_on").eq("family_id", family.id).order("recorded_on").order("created_at"),
   ]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localISODate();
   const year = today.slice(0, 4);
   const total = (investments ?? []).reduce((s, i) => s + Number(i.current_value), 0);
   const net = (id: string) => (movements ?? []).filter((m) => m.investment_id === id)
@@ -21,6 +22,20 @@ export default async function InvestimentosPage() {
   const totalNet = (investments ?? []).reduce((s, i) => s + net(i.id), 0);
   const gainTotal = total - totalNet;
   const proventosAno = (movements ?? []).filter((m) => m.kind === "provento" && m.occurred_on.startsWith(year)).reduce((s, m) => s + Number(m.amount), 0);
+
+  // evolução: em cada mês, soma o último valor conhecido de cada investimento que ainda existe
+  const alive = new Set((investments ?? []).map((i) => i.id));
+  const latest = new Map<string, number>();
+  const byMonth = new Map<string, number>();
+  for (const s of snapshots ?? []) {
+    if (!alive.has(s.investment_id)) continue;
+    latest.set(s.investment_id, Number(s.value));
+    byMonth.set(s.recorded_on.slice(0, 7), [...latest.values()].reduce((a, b) => a + b, 0));
+  }
+  const evolution = [...byMonth].map(([mo, valor]) => ({
+    mes: new Date(mo + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+    valor,
+  }));
 
   const alloc = new Map<string, number>();
   for (const i of investments ?? []) alloc.set(ASSET_TYPES[i.asset_type], (alloc.get(ASSET_TYPES[i.asset_type]) ?? 0) + Number(i.current_value));
@@ -71,10 +86,17 @@ export default async function InvestimentosPage() {
         <section className="card">
           <h2 className="display mb-2 text-lg font-semibold">Distribuição da carteira</h2>
           {alloc.size
-            ? <AllocationPie data={[...alloc].map(([name, value]) => ({ name, value }))} />
+            ? <DonutWithLegend data={[...alloc].map(([name, value], i) => ({ name, value, color: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }))} />
             : <p className="py-10 text-center text-sm text-muted">Nenhum investimento cadastrado ainda.</p>}
         </section>
       </div>
+
+      <section className="card">
+        <h2 className="display mb-2 text-lg font-semibold">Evolução da carteira</h2>
+        {evolution.length > 1
+          ? <PatrimonyLine data={evolution} />
+          : <p className="py-10 text-center text-sm text-muted">O gráfico aparece a partir do segundo mês com valores registrados. Atualize o valor dos investimentos todo mês.</p>}
+      </section>
 
       <div className="space-y-4">
         {(investments ?? []).map((i) => {

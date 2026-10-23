@@ -10,7 +10,7 @@ export function monthRange(month: string) {
   return { start: `${month}-01`, end: `${next}-01` };
 }
 
-export const currentMonth = () => new Date().toISOString().slice(0, 7);
+export const currentMonth = () => localISODate().slice(0, 7);
 
 export const monthLabel = (month: string) =>
   new Date(month + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -28,3 +28,7 @@ export const ASSET_TYPES: Record<string, string> = {
 export const ACCOUNT_KINDS: Record<string, string> = {
   checking: "Conta corrente", savings: "Poupança", credit_card: "Cartão de crédito", cash: "Dinheiro", other: "Outra",
 };
+
+/** Data de hoje (YYYY-MM-DD) no fuso de São Paulo, igual no servidor (UTC) e no navegador. */
+const spDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" });
+export const localISODate = (d = new Date()) => spDate.format(d);

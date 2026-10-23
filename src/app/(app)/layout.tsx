@@ -1,11 +1,12 @@
 import { LogOut } from "lucide-react";
-import { getFamilyContext } from "@/lib/family";
+import { getFamilyContext, getFormOptions } from "@/lib/family";
+import QuickAdd from "@/components/QuickAdd";
 import { signOut } from "@/app/login/actions";
 import { TopNav, BottomNav } from "@/components/NavLinks";
 import Monogram from "@/components/Monogram";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { family, me } = await getFamilyContext();
+  const [{ family, me }, options] = await Promise.all([getFamilyContext(), getFormOptions()]);
   return (
     <div className="min-h-screen pb-20 md:pb-0">
       <header className="border-b border-line bg-surface">
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <QuickAdd options={options} />
       <BottomNav />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getFamilyContext } from "@/lib/family";
+import { localISODate } from "@/lib/format";
 import type { ActionResult } from "@/components/forms";
 
 const str = (f: FormData, k: string) => {
@@ -34,6 +35,23 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
     payment_method: str(formData, "payment_method"),
   });
   return fail(error, "Não foi possível salvar o lançamento") ?? done(kind === "income" ? "Ganho registrado." : "Gasto registrado.");
+}
+
+export async function updateTransaction(formData: FormData): Promise<ActionResult> {
+  const { supabase } = await getFamilyContext();
+  const amount = num(formData, "amount");
+  if (!(amount > 0)) return { ok: false, error: "Informe um valor maior que zero." };
+  const { error } = await supabase.from("transactions").update({
+    kind: str(formData, "kind"),
+    amount,
+    occurred_on: str(formData, "occurred_on"),
+    description: str(formData, "description"),
+    category_id: str(formData, "category_id"),
+    account_id: str(formData, "account_id"),
+    member_id: str(formData, "member_id"),
+    payment_method: str(formData, "payment_method"),
+  }).eq("id", str(formData, "id")!);
+  return fail(error, "Não foi possível salvar as alterações") ?? done("Lançamento atualizado.");
 }
 
 export async function deleteTransaction(formData: FormData): Promise<ActionResult> {
@@ -93,7 +111,7 @@ export async function addMovement(formData: FormData): Promise<ActionResult> {
 export async function updateInvestmentValue(formData: FormData): Promise<ActionResult> {
   const { supabase } = await getFamilyContext();
   const { error } = await supabase.from("investments")
-    .update({ current_value: num(formData, "current_value"), updated_value_at: new Date().toISOString().slice(0, 10) })
+    .update({ current_value: num(formData, "current_value"), updated_value_at: localISODate() })
     .eq("id", str(formData, "id")!);
   return fail(error, "Não foi possível atualizar") ?? done("Valor atualizado.");
 }

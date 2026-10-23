@@ -31,8 +31,8 @@ export function SubmitButton({ children, pendingText = "Salvando…", className 
 }
 
 /** Form que chama uma server action, mostra aviso de sucesso/erro e limpa os campos. */
-export function ActionForm({ action, children, className, reset = true }: {
-  action: Action; children: React.ReactNode; className?: string; reset?: boolean;
+export function ActionForm({ action, children, className, reset = true, onSuccess }: {
+  action: Action; children: React.ReactNode; className?: string; reset?: boolean; onSuccess?: () => void;
 }) {
   const ref = useRef<HTMLFormElement>(null);
   const toast = useToast();
@@ -46,6 +46,7 @@ export function ActionForm({ action, children, className, reset = true }: {
           if (r.ok) {
             if (r.message) toast("ok", r.message);
             if (reset) ref.current?.reset();
+            onSuccess?.();
           } else toast("error", r.error);
         } catch {
           toast("error", "Não foi possível salvar. Verifique sua conexão e tente de novo.");

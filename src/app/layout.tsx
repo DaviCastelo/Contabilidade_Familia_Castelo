@@ -10,6 +10,7 @@ const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"
 export const metadata: Metadata = {
   title: "Contabilidade Família Castelo",
   description: "Gastos, ganhos e investimentos da família",
+  appleWebApp: { capable: true, title: "Castelo $", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
