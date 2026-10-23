@@ -8,7 +8,7 @@ import { signIn, signUp, requestPasswordReset, type AuthState } from "./actions"
 
 type Mode = "in" | "up" | "reset";
 const COPY: Record<Mode, { title: string; subtitle: string; button: string }> = {
-  in: { title: "Família Castelo", subtitle: "Entre para ver as contas da família.", button: "Entrar" },
+  in: { title: "Bem-vindo de volta", subtitle: "Entre para ver as contas da família.", button: "Entrar" },
   up: { title: "Criar conta", subtitle: "Depois você cria a família ou entra com um convite.", button: "Criar conta" },
   reset: { title: "Recuperar senha", subtitle: "Enviaremos um link para você criar uma nova senha.", button: "Enviar link" },
 };

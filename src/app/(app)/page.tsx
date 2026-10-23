@@ -53,7 +53,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const prevByRoot = byRoot(inMonth(prevMonth));
   const nameOf = (id: string) => catById.get(id)?.name ?? "Sem categoria";
 
-  const pie = [...nowByRoot].map(([id, value]) => ({ name: nameOf(id), color: catById.get(id)?.color ?? "#78716c", value }));
+  const pie = [...nowByRoot].map(([id, value]) => ({ name: nameOf(id), color: catById.get(id)?.color ?? "#8a94a6", value }));
 
   const changes = [...new Set([...nowByRoot.keys(), ...prevByRoot.keys()])]
     .map((id) => ({ id, now: nowByRoot.get(id) ?? 0, prev: prevByRoot.get(id) ?? 0 }))

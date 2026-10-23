@@ -20,7 +20,7 @@ function topSlices(data: Slice[], max = 6): Slice[] {
   const sorted = [...data].sort((a, b) => b.value - a.value);
   if (sorted.length <= max) return sorted;
   const rest = sorted.slice(max - 1).reduce((s, d) => s + d.value, 0);
-  return [...sorted.slice(0, max - 1), { name: "Outros", color: "#a8a29e", value: rest }];
+  return [...sorted.slice(0, max - 1), { name: "Outros", color: "#8a94a6", value: rest }];
 }
 
 /** Pizza + legenda própria com valor e porcentagem (não depende só da cor). */
@@ -94,4 +94,4 @@ export function PatrimonyLine({ data }: { data: { mes: string; valor: number }[]
   );
 }
 
-export const ALLOCATION_COLORS = ["#2f6b4f", "#a8471f", "#c08a2e", "#4a6fa5", "#7a5c8a", "#5f8a7a", "#78716c"];
+export const ALLOCATION_COLORS = ["#c79a2b", "#3b6fb6", "#2ba5a0", "#d1495b", "#7a5cc2", "#e08a3c", "#8a94a6"];

@@ -87,7 +87,7 @@ export default async function ConfiguracoesPage() {
               <select name="kind" className="input"><option value="expense">Gasto</option><option value="income">Ganho</option></select>
             </Field>
             <Field label="Cor">
-              <input name="color" type="color" defaultValue="#78716c" className="input h-11 cursor-pointer p-1" />
+              <input name="color" type="color" defaultValue="#8a94a6" className="input h-11 cursor-pointer p-1" />
             </Field>
             <SubmitButton className="btn sm:col-span-2">Adicionar categoria</SubmitButton>
           </ActionForm>

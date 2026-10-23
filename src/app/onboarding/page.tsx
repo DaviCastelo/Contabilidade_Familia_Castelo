@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { CircleAlert, LoaderCircle, Plus, UserPlus } from "lucide-react";
-import Monogram from "@/components/Monogram";
+import Logo from "@/components/Logo";
 import { Field } from "@/components/forms";
 import { createFamily, joinFamily } from "./actions";
 
@@ -15,7 +15,7 @@ export default function OnboardingPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-6 p-4">
       <div className="rise space-y-3">
-        <Monogram className="h-11 w-11" />
+        <Logo size={48} />
         <h1 className="display text-3xl font-semibold">Bem-vindo à contabilidade da família</h1>
         <p className="text-muted">Crie a família pela primeira vez ou entre na que já existe usando o código de convite.</p>
       </div>

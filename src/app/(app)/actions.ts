@@ -126,7 +126,7 @@ export async function addCategory(formData: FormData): Promise<ActionResult> {
   const { supabase, family } = await getFamilyContext();
   const parentId = str(formData, "parent_id");
   let kind = str(formData, "kind");
-  let color = str(formData, "color") ?? "#78716c";
+  let color = str(formData, "color") ?? "#8a94a6";
   if (parentId) {
     const { data: parent } = await supabase.from("categories").select("kind, color").eq("id", parentId).single();
     kind = parent!.kind;

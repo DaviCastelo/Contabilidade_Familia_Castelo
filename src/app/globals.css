@@ -1,41 +1,45 @@
 @import "tailwindcss";
 
-/* Livro-caixa da família: papel quente, tinta escura, verde-garrafa e terracota */
+/* Cofre real: azul-marinho do brasão + ouro. Claro = papel marfim; escuro = noite do castelo. */
 :root {
-  --paper: #f7f4ee;
-  --surface: #fffdf9;
-  --sunken: #efeae0;
-  --ink: #1c1917;
-  --muted: #57534e;
-  --line: #e2dacb;
-  --gain: #2f6b4f;
-  --gain-soft: #e3efe7;
-  --loss: #a8471f;
-  --loss-soft: #f6e4da;
-  --warn: #9a6412;
-  --accent: #1f4d3a;
-  --accent-hover: #173b2c;
-  --accent-ink: #fffdf9;
-  --focus: #2f6b4f;
+  --paper: #f6f4ef;
+  --surface: #ffffff;
+  --sunken: #eeebe3;
+  --ink: #0f1b2d;
+  --muted: #4b5568;
+  --line: #e2ddd1;
+  --gain: #0b7a52;
+  --gain-soft: #e1f3ea;
+  --loss: #c03549;
+  --loss-soft: #fbe6e9;
+  --warn: #946200;
+  --accent: #172e4d;
+  --accent-hover: #0f2140;
+  --accent-ink: #f6f4ef;
+  --gold: #b8892a;
+  --gold-soft: #f6ecd4;
+  --focus: #b8892a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #13110e;
-    --surface: #1c1915;
-    --sunken: #26221d;
-    --ink: #f2ede4;
-    --muted: #b3aca3;
-    --line: #37312a;
-    --gain: #86c9a5;
-    --gain-soft: #1d2e25;
-    --loss: #ec9a74;
-    --loss-soft: #3a2419;
-    --warn: #e2b866;
-    --accent: #86c9a5;
-    --accent-hover: #a3d9bb;
-    --accent-ink: #13110e;
-    --focus: #86c9a5;
+    --paper: #0a1120;
+    --surface: #111b2e;
+    --sunken: #18243b;
+    --ink: #e8ecf4;
+    --muted: #9eabc2;
+    --line: #23304a;
+    --gain: #5ee0a8;
+    --gain-soft: #0f2e24;
+    --loss: #ff8a9b;
+    --loss-soft: #3a1520;
+    --warn: #f2c35b;
+    --accent: #e3b651;
+    --accent-hover: #eec66e;
+    --accent-ink: #0a1120;
+    --gold: #e3b651;
+    --gold-soft: #2c2412;
+    --focus: #e3b651;
   }
 }
 
@@ -54,6 +58,8 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-plex);
   --font-mono: var(--font-plex-mono);
