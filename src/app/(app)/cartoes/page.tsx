@@ -4,6 +4,7 @@ import { getFamilyContext, getCategories } from "@/lib/family";
 import { brl, dateBR } from "@/lib/format";
 import { loadFinance } from "@/lib/ops";
 import { ActionForm, Field, SubmitButton } from "@/components/forms";
+import CategoryIcon from "@/components/CategoryIcon";
 import { updateCard } from "../actions";
 
 export default async function CartoesPage() {
@@ -65,7 +66,7 @@ export default async function CartoesPage() {
                   {current.items.map((i) => (
                     <li key={i.id} className="flex items-center justify-between gap-3 py-2">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: (i.category_id && catById.get(i.category_id)?.color) || "var(--line)" }} aria-hidden />
+                        <CategoryIcon icon={i.category_id ? catById.get(i.category_id)?.icon : null} color={i.category_id ? catById.get(i.category_id)?.color : null} size="sm" />
                         <span className="truncate">{i.description ?? catById.get(i.category_id ?? "")?.name ?? "Compra"}</span>
                         {i.installment && <span className="money rounded bg-sunken px-1.5 text-[11px] text-muted">{i.installment}</span>}
                         {i.virtual && <span className="rounded bg-gold-soft px-1.5 text-[11px] text-gold">recorrente</span>}

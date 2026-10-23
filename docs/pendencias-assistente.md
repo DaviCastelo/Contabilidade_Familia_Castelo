@@ -5,7 +5,7 @@ Estado em 2026-10-23. Código: `src/lib/assistant/` (agente e ferramentas), `src
 ## Já pronto
 
 - Agente com Claude (`claude-sonnet-5-5` por padrão, trocável pela variável `ASSISTANT_MODEL`). Usa loop manual de ferramentas, cache do prompt, fallback em caso de recusa e `drop_block` para os blocos de raciocínio.
-- 18 ferramentas: consultar resumo, lançamentos, faturas, recorrentes e investimentos; criar e editar lançamentos (inclusive parcelados), recorrentes, orçamento, investimentos, categorias e contas; excluir somente após confirmação.
+- 20 ferramentas (incluindo metas: `listar_metas` e `guardar_na_meta`): consultar resumo, lançamentos, faturas, recorrentes e investimentos; criar e editar lançamentos (inclusive parcelados), recorrentes, orçamento, investimentos, categorias e contas; excluir somente após confirmação.
 - As ferramentas rodam com o login de quem está conversando, então o RLS do Supabase limita tudo à própria família.
 - Histórico salvo por pessoa em `ai_conversations`: `messages` guarda o histórico da API sem alterações e `display` guarda o que aparece na tela.
 - Tela de chat com sugestões, "Nova conversa" e marcação das ações feitas em cada resposta.

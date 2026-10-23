@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Ellipsis, LayoutDashboard, ReceiptText, Settings, Sparkles, Target, TrendingUp } from "lucide-react";
+import { CreditCard, Ellipsis, LayoutDashboard, PiggyBank, ReceiptText, Settings, Sparkles, Target, TrendingUp } from "lucide-react";
 
 const LINKS = [
   { href: "/", label: "Painel", icon: LayoutDashboard },
@@ -10,14 +10,15 @@ const LINKS = [
   { href: "/cartoes", label: "Cartões", icon: CreditCard },
   { href: "/orcamento", label: "Orçamento", icon: Target },
   { href: "/investimentos", label: "Investimentos", icon: TrendingUp },
+  { href: "/metas", label: "Metas", icon: PiggyBank },
   { href: "/assistente", label: "Assistente", icon: Sparkles },
   { href: "/configuracoes", label: "Ajustes", icon: Settings },
 ];
 
 /** No celular cabem 5: o resto fica em "Mais". */
 const MOBILE = [
-  LINKS[0], LINKS[1], LINKS[5], LINKS[2],
-  { href: "/mais", label: "Mais", icon: Ellipsis, matches: ["/mais", "/orcamento", "/investimentos", "/configuracoes", "/recorrentes"] },
+  LINKS[0], LINKS[1], LINKS[6], LINKS[2],
+  { href: "/mais", label: "Mais", icon: Ellipsis, matches: ["/mais", "/orcamento", "/investimentos", "/metas", "/configuracoes", "/recorrentes", "/importar"] },
 ];
 
 const isActive = (path: string, href: string, matches?: string[]) =>

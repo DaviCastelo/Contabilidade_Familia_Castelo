@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getFamilyContext } from "@/lib/family";
 import { localISODate } from "@/lib/format";
 import type { ActionResult } from "@/components/forms";
-import { createRecurring, createTransactions } from "@/lib/ops";
+import { createRecurring, createTransactions, removeReceiptIfUnused } from "@/lib/ops";
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -18,6 +18,11 @@ const done = (message?: string): ActionResult => {
 };
 const fail = (error: { message: string } | null, fallback: string): ActionResult | null =>
   error ? { ok: false, error: `${fallback} (${error.message})` } : null;
+
+const receiptOf = (f: FormData, familyId: string) => {
+  const p = str(f, "receipt_path");
+  return p && p.startsWith(`${familyId}/`) && !p.includes("..") ? p : null;
+};
 
 export async function addTransaction(formData: FormData): Promise<ActionResult> {
   const { supabase, family } = await getFamilyContext();
@@ -36,7 +41,7 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
       return done("Lançamento recorrente criado. Ele entra sozinho todo mês.");
     }
     const installments = frequency === "installments" ? Math.max(2, Math.floor(num(formData, "installments"))) : 1;
-    await createTransactions(supabase, family.id, { ...common, occurred_on, installments });
+    await createTransactions(supabase, family.id, { ...common, occurred_on, installments, receipt_path: receiptOf(formData, family.id) });
     if (installments > 1) return done(`Compra lançada em ${installments} parcelas.`);
     return done(kind === "income" ? "Ganho registrado." : "Gasto registrado.");
   } catch (e) {
@@ -46,7 +51,8 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
 
 export async function deleteInstallmentGroup(formData: FormData): Promise<ActionResult> {
   const { supabase } = await getFamilyContext();
-  const { error } = await supabase.from("transactions").delete().eq("installment_group", str(formData, "id")!);
+  const { data, error } = await supabase.from("transactions").delete().eq("installment_group", str(formData, "id")!).select("receipt_path");
+  if (!error) await removeReceiptIfUnused(supabase, data?.[0]?.receipt_path);
   return fail(error, "Não foi possível excluir as parcelas") ?? done("Parcelamento excluído.");
 }
 
@@ -99,10 +105,16 @@ export async function updateCard(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateTransaction(formData: FormData): Promise<ActionResult> {
-  const { supabase } = await getFamilyContext();
+  const { supabase, family } = await getFamilyContext();
   const amount = num(formData, "amount");
   if (!(amount > 0)) return { ok: false, error: "Informe um valor maior que zero." };
+  const id = str(formData, "id")!;
+  const { data: before } = await supabase.from("transactions").select("receipt_path").eq("id", id).single();
+  const newReceipt = receiptOf(formData, family.id);
+  const removing = str(formData, "remove_receipt") === "1";
+  const receipt: Record<string, unknown> = newReceipt ? { receipt_path: newReceipt } : removing ? { receipt_path: null } : {};
   const { error } = await supabase.from("transactions").update({
+    ...receipt,
     kind: str(formData, "kind"),
     amount,
     occurred_on: str(formData, "occurred_on"),
@@ -111,13 +123,15 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
     account_id: str(formData, "account_id"),
     member_id: str(formData, "member_id"),
     payment_method: str(formData, "payment_method"),
-  }).eq("id", str(formData, "id")!);
+  }).eq("id", id);
+  if (!error && (newReceipt || removing)) await removeReceiptIfUnused(supabase, before?.receipt_path);
   return fail(error, "Não foi possível salvar as alterações") ?? done("Lançamento atualizado.");
 }
 
 export async function deleteTransaction(formData: FormData): Promise<ActionResult> {
   const { supabase } = await getFamilyContext();
-  const { error } = await supabase.from("transactions").delete().eq("id", str(formData, "id")!);
+  const { data, error } = await supabase.from("transactions").delete().eq("id", str(formData, "id")!).select("receipt_path");
+  if (!error) await removeReceiptIfUnused(supabase, data?.[0]?.receipt_path);
   return fail(error, "Não foi possível excluir") ?? done("Lançamento excluído.");
 }
 
@@ -193,8 +207,21 @@ export async function addCategory(formData: FormData): Promise<ActionResult> {
     kind = parent!.kind;
     color = parent!.color;
   }
-  const { error } = await supabase.from("categories").insert({ family_id: family.id, name: str(formData, "name"), kind, color, parent_id: parentId });
+  const { error } = await supabase.from("categories").insert({ family_id: family.id, name: str(formData, "name"), kind, color, icon: str(formData, "icon") ?? "tag", parent_id: parentId });
   return fail(error, "Não foi possível criar a categoria") ?? done("Categoria criada.");
+}
+
+export async function updateCategory(formData: FormData): Promise<ActionResult> {
+  const { supabase } = await getFamilyContext();
+  const id = str(formData, "id")!;
+  const patch: Record<string, unknown> = { name: str(formData, "name"), icon: str(formData, "icon") ?? "tag" };
+  const color = str(formData, "color");
+  if (color) patch.color = color;
+  const { error } = await supabase.from("categories").update(patch).eq("id", id);
+  if (error) return fail(error, "Não foi possível salvar a categoria")!;
+  // subcategorias acompanham a cor do grupo
+  if (color) await supabase.from("categories").update({ color }).eq("parent_id", id);
+  return done("Categoria atualizada.");
 }
 
 export async function deleteCategory(formData: FormData): Promise<ActionResult> {

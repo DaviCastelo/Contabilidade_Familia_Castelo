@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, Check, CreditCard, TriangleAlert, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, CreditCard, Landmark, PiggyBank, TriangleAlert, TrendingDown, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+
+const ACCOUNT_ICONS: Record<string, LucideIcon> = { checking: Landmark, savings: PiggyBank, cash: Wallet, credit_card: CreditCard, other: Landmark };
 import { getFamilyContext, getCategories, rootCategory } from "@/lib/family";
 import { brl, monthRange, currentMonth, monthLabel, dateBR } from "@/lib/format";
 import { loadFinance } from "@/lib/ops";
+import { loadGoals } from "@/lib/goals";
+import CategoryIcon from "@/components/CategoryIcon";
 import MonthPicker from "@/components/MonthPicker";
 import Amount from "@/components/Amount";
 import { DonutWithLegend, MonthlyBars } from "@/components/Charts";
@@ -21,7 +25,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { supabase, family } = await getFamilyContext();
 
   // um único select cobre o mês atual, o anterior e o gráfico de 6 meses
-  const [categories, { data: history }, { data: budgets }, fin, { data: accounts }, { data: allTx }, { count: budgetCount }] = await Promise.all([
+  const [categories, { data: history }, { data: budgets }, fin, { data: accounts }, { data: allTx }, { count: budgetCount }, goals] = await Promise.all([
     getCategories(),
     supabase.from("transactions").select("kind, amount, category_id, description, occurred_on").eq("family_id", family.id).gte("occurred_on", `${sixAgo}-01`).lt("occurred_on", end),
     supabase.from("budgets").select("category_id, amount").eq("family_id", family.id).eq("month", start),
@@ -29,7 +33,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     supabase.from("accounts").select("initial_balance").eq("family_id", family.id),
     supabase.from("transactions").select("id").eq("family_id", family.id).limit(10),
     supabase.from("budgets").select("id", { count: "exact", head: true }).eq("family_id", family.id),
+    loadGoals(supabase, family.id),
   ]);
+  const goalList = [...(goals.emergency ? [goals.emergency] : []), ...goals.goals].slice(0, 4);
 
   const catById = new Map(categories.map((c) => [c.id, c]));
   const sum = (rows: { amount: number | string }[]) => rows.reduce((s, r) => s + Number(r.amount), 0);
@@ -182,6 +188,59 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="rise card" aria-label="Saldo das contas">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="display text-lg font-semibold">Contas</h2>
+          <Link href="/configuracoes" className="text-sm font-medium text-accent hover:underline">Gerenciar</Link>
+        </div>
+        <ul className="grid gap-x-6 sm:grid-cols-2">
+          {fin.accounts.map((a) => {
+            const Icon = ACCOUNT_ICONS[a.kind] ?? Landmark;
+            const card = a.kind === "credit_card" ? fin.cards.find((c) => c.card.id === a.id) : null;
+            const value = card ? -card.debt : fin.balances.get(a.id) ?? 0;
+            return (
+              <li key={a.id} className="flex items-center gap-3 border-b border-line py-2.5 last:border-0 sm:[&:nth-last-child(2)]:border-0">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sunken text-gold"><Icon className="h-4.5 w-4.5" aria-hidden /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{a.name}</span>
+                  <span className="block text-xs text-muted">
+                    {card ? (card.current ? `fatura ${brl(card.current.total)} · vence ${dateBR(card.current.dueDate)}` : "sem fatura aberta") : "saldo hoje"}
+                  </span>
+                </span>
+                <span className={`money font-medium ${value < 0 ? "text-loss" : "text-ink"}`}>{brl(value)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="rise card" aria-label="Metas">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="display text-lg font-semibold">Metas</h2>
+          <Link href="/metas" className="text-sm font-medium text-accent hover:underline">{goalList.length ? "Ver todas" : "Criar"}</Link>
+        </div>
+        {goalList.length ? (
+          <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            {goalList.map((g) => (
+              <li key={g.id} className="flex items-center gap-3">
+                <CategoryIcon icon={g.icon} color={g.color} />
+                <div className="min-w-0 flex-1">
+                  <p className="flex justify-between gap-2 text-sm">
+                    <span className="truncate font-medium">{g.name}</span>
+                    <span className="money shrink-0 text-muted">
+                      {g.isEmergency && g.monthsCovered != null ? `${g.monthsCovered.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} de ${g.emergencyMonths} meses` : `${Math.round(g.pct)}%`}
+                    </span>
+                  </p>
+                  <div className="mt-1 h-1.5 rounded-full bg-sunken"><div className="h-1.5 rounded-full" style={{ width: `${g.pct}%`, background: g.color }} /></div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">Comece pela <Link href="/metas" className="font-medium text-accent hover:underline">reserva de emergência</Link>: eu calculo quantos meses de custo de vida vocês já têm guardados.</p>
         )}
       </section>
 

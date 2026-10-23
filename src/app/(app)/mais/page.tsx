@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { ChevronRight, Repeat, Settings, Target, TrendingUp } from "lucide-react";
+import { ChevronRight, FileUp, PiggyBank, Repeat, Settings, Target, TrendingUp } from "lucide-react";
 // o que não cabe na barra do celular (fica aqui, não no componente de cliente: página do servidor não lê exports dele)
 const MORE_LINKS = [
   { href: "/orcamento", label: "Orçamento", description: "Limites por categoria", icon: Target },
+  { href: "/metas", label: "Metas", description: "Reserva de emergência e sonhos da família", icon: PiggyBank },
   { href: "/investimentos", label: "Investimentos", description: "Carteira, aportes e rendimento", icon: TrendingUp },
   { href: "/recorrentes", label: "Recorrentes", description: "Salário, aluguel e assinaturas", icon: Repeat },
+  { href: "/importar", label: "Importar extrato", description: "OFX ou CSV do banco", icon: FileUp },
   { href: "/configuracoes", label: "Ajustes", description: "Família, contas e categorias", icon: Settings },
 ];
 

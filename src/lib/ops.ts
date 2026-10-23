@@ -12,12 +12,15 @@ export type NewTransaction = {
   category_id?: string | null; account_id?: string | null; member_id?: string | null; payment_method?: string | null;
   /** 1 = à vista. Acima disso, `amount` é o valor TOTAL e vira N parcelas mensais. */
   installments?: number;
+  receipt_path?: string | null;
+  external_id?: string | null;
 };
 
 export async function createTransactions(supabase: SupabaseClient, familyId: string, t: NewTransaction) {
   const n = Math.max(1, Math.min(72, Math.floor(t.installments ?? 1)));
   const base = { family_id: familyId, kind: t.kind, description: t.description ?? null, category_id: t.category_id ?? null,
-    account_id: t.account_id ?? null, member_id: t.member_id ?? null, payment_method: t.payment_method ?? null };
+    account_id: t.account_id ?? null, member_id: t.member_id ?? null, payment_method: t.payment_method ?? null,
+    receipt_path: t.receipt_path ?? null, external_id: t.external_id ?? null };
   if (n === 1) {
     const { data, error } = await supabase.from("transactions").insert({ ...base, amount: t.amount, occurred_on: t.occurred_on }).select("id").single();
     if (error) throw new Error(error.message);
@@ -85,3 +88,10 @@ export function findByName<T>(items: T[], name: string, label: (t: T) => string[
 }
 
 export const todaySP = () => localISODate();
+
+/** Apaga o arquivo do comprovante se nenhum lançamento usa mais (parcelas compartilham o mesmo). */
+export async function removeReceiptIfUnused(supabase: SupabaseClient, path: string | null | undefined) {
+  if (!path) return;
+  const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("receipt_path", path);
+  if (!count) await supabase.storage.from("comprovantes").remove([path]);
+}

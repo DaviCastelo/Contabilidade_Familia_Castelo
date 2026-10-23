@@ -1,6 +1,6 @@
 import { getFamilyContext, getCategories, getFormOptions, categoryLabel, rootCategory } from "@/lib/family";
 import Link from "next/link";
-import { Repeat } from "lucide-react";
+import { FileUp, Repeat } from "lucide-react";
 import { brl, monthRange, currentMonth, PAYMENT_METHODS, localISODate } from "@/lib/format";
 import MonthPicker from "@/components/MonthPicker";
 import TransactionList, { type Row } from "./TransactionList";
@@ -14,7 +14,7 @@ export default async function LancamentosPage({ searchParams }: { searchParams: 
     getCategories(),
     getFormOptions(),
     supabase.from("transactions")
-      .select("id, kind, amount, occurred_on, description, category_id, account_id, member_id, payment_method, recurring_id, installment_group, installment_number, installment_total")
+      .select("id, kind, amount, occurred_on, description, category_id, account_id, member_id, payment_method, recurring_id, installment_group, installment_number, installment_total, receipt_path")
       .eq("family_id", family.id).gte("occurred_on", start).lt("occurred_on", end)
       .order("occurred_on", { ascending: false }).order("created_at", { ascending: false }),
   ]);
@@ -30,7 +30,8 @@ export default async function LancamentosPage({ searchParams }: { searchParams: 
       amount: Number(t.amount),
       kind: t.kind as "income" | "expense",
       catLabel: cat ? categoryLabel(cat, categories) : "Sem categoria",
-      catColor: cat?.color ?? "var(--line)",
+      catColor: cat?.color ?? "#8a94a6",
+      catIcon: cat?.icon ?? null,
       rootId: rootCategory(t.category_id, catById)?.id ?? null,
       account: (t.account_id && accById.get(t.account_id)) || "—",
       member: (t.member_id && memberById.get(t.member_id)) || "—",
@@ -47,7 +48,8 @@ export default async function LancamentosPage({ searchParams }: { searchParams: 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="display text-3xl font-semibold">Lançamentos</h1>
         <div className="flex items-center gap-2">
-          <Link href="/recorrentes" className="btn-ghost"><Repeat className="h-4 w-4" aria-hidden /> Recorrentes</Link>
+          <Link href="/importar" className="btn-ghost" title="Importar extrato"><FileUp className="h-4 w-4" aria-hidden /><span className="hidden sm:inline">Importar</span></Link>
+          <Link href="/recorrentes" className="btn-ghost" title="Recorrentes"><Repeat className="h-4 w-4" aria-hidden /><span className="hidden sm:inline">Recorrentes</span></Link>
           <MonthPicker month={month} />
         </div>
       </div>

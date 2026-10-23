@@ -18,12 +18,12 @@ export function Field({ label, className = "", children }: { label: string; clas
   );
 }
 
-export function SubmitButton({ children, pendingText = "Salvando…", className = "btn" }: {
-  children: React.ReactNode; pendingText?: string; className?: string;
+export function SubmitButton({ children, pendingText = "Salvando…", className = "btn", name, value }: {
+  children: React.ReactNode; pendingText?: string; className?: string; name?: string; value?: string;
 }) {
   const { pending } = useFormStatus();
   return (
-    <button className={className} disabled={pending} aria-busy={pending}>
+    <button className={className} disabled={pending} aria-busy={pending} name={name} value={value}>
       {pending && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />}
       {pending ? pendingText : children}
     </button>

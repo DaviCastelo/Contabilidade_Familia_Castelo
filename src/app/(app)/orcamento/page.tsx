@@ -1,6 +1,7 @@
 import { getFamilyContext, type Category } from "@/lib/family";
 import { brl, monthRange, currentMonth } from "@/lib/format";
 import MonthPicker from "@/components/MonthPicker";
+import CategoryIcon from "@/components/CategoryIcon";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { setBudget } from "../actions";
 
@@ -10,7 +11,7 @@ export default async function OrcamentoPage({ searchParams }: { searchParams: Pr
   const { supabase, family } = await getFamilyContext();
 
   const [{ data: cats }, { data: budgets }, { data: txs }] = await Promise.all([
-    supabase.from("categories").select("id, name, kind, color, parent_id").eq("family_id", family.id).eq("kind", "expense"),
+    supabase.from("categories").select("id, name, kind, color, icon, parent_id").eq("family_id", family.id).eq("kind", "expense"),
     supabase.from("budgets").select("category_id, amount").eq("family_id", family.id).eq("month", start),
     supabase.from("transactions").select("amount, category_id").eq("family_id", family.id).eq("kind", "expense").gte("occurred_on", start).lt("occurred_on", end),
   ]);
@@ -51,8 +52,8 @@ export default async function OrcamentoPage({ searchParams }: { searchParams: Pr
           return (
             <div key={c.id} className="card space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2 font-medium">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} aria-hidden />{c.name}
+                <span className="inline-flex items-center gap-2.5 font-medium">
+                  <CategoryIcon icon={c.icon} color={c.color} size="sm" />{c.name}
                 </span>
                 <span className="money text-sm text-muted">
                   <span className={status === "over" ? "font-semibold text-loss" : "text-ink"}>{brl(used)}</span>

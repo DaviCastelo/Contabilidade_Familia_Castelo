@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarClock, Pencil, Repeat, Search, X } from "lucide-react";
+import { CalendarClock, Paperclip, Pencil, Repeat, Search, X } from "lucide-react";
+import { openReceipt } from "@/lib/receipts";
 import Amount from "@/components/Amount";
+import CategoryIcon from "@/components/CategoryIcon";
 import Modal from "@/components/Modal";
 import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
 import { brl, localISODate } from "@/lib/format";
@@ -12,7 +14,7 @@ import TransactionForm, { type EditableTransaction } from "./TransactionForm";
 
 export type Row = EditableTransaction & {
   recurring_id: string | null; installment_group: string | null; installment_number: number | null; installment_total: number | null;
-  catLabel: string; catColor: string; rootId: string | null; account: string; member: string; payment: string;
+  catLabel: string; catColor: string; catIcon: string | null; receipt_path: string | null; rootId: string | null; account: string; member: string; payment: string;
 };
 
 const dayKey = (d: Date) => localISODate(d);
@@ -108,7 +110,7 @@ export default function TransactionList({ rows, options, rootCategories, today }
             <ul className="ledger">
               {items.map((t) => (
                 <li key={t.id} className="flex items-center gap-3 px-4 py-2">
-                  <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: t.catColor }} aria-hidden />
+                  <CategoryIcon icon={t.catIcon} color={t.catColor} />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5 truncate font-medium">
                       <span className="truncate">{t.description ?? t.catLabel}</span>
@@ -122,6 +124,11 @@ export default function TransactionList({ rows, options, rootCategories, today }
                   </div>
                   <Amount kind={t.kind} value={t.amount} />
                   <div className="flex">
+                    {t.receipt_path && (
+                      <button type="button" className="icon-btn text-gold" onClick={() => openReceipt(t.receipt_path!)} aria-label={`Ver comprovante de ${t.description ?? t.catLabel}`} title="Ver comprovante">
+                        <Paperclip className="h-4 w-4" aria-hidden />
+                      </button>
+                    )}
                     <button type="button" className="icon-btn" onClick={() => setEditing(t)} aria-label={`Editar ${t.description ?? t.catLabel}`}>
                       <Pencil className="h-4 w-4" aria-hidden />
                     </button>

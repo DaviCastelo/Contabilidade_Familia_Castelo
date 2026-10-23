@@ -3,6 +3,7 @@ import { getFamilyContext, getCategories, getFormOptions, categoryLabel } from "
 import { brl, dateBR, localISODate, PAYMENT_METHODS } from "@/lib/format";
 import { recurringOccurrences, addMonths } from "@/lib/finance";
 import Amount from "@/components/Amount";
+import CategoryIcon from "@/components/CategoryIcon";
 import { ActionForm, DeleteButton, Field, SubmitButton } from "@/components/forms";
 import { addRecurring, deleteRecurring, updateRecurring } from "../actions";
 
@@ -80,7 +81,7 @@ export default async function RecorrentesPage() {
             const next = recurringOccurrences({ ...r, generated_until: r.generated_until ?? null }, today, addMonths(today, 13))[0];
             return (
               <li key={r.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${r.active ? "" : "opacity-60"}`}>
-                <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: cat?.color ?? "var(--line)" }} aria-hidden />
+                <CategoryIcon icon={cat?.icon} color={cat?.color} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{r.description ?? (cat ? categoryLabel(cat, categories) : "Recorrente")}</p>
                   <p className="truncate text-xs text-muted">

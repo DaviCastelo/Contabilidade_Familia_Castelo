@@ -2,13 +2,13 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export type Category = { id: string; name: string; kind: "income" | "expense"; color: string; parent_id: string | null };
+export type Category = { id: string; name: string; kind: "income" | "expense"; color: string; icon: string | null; parent_id: string | null };
 export type Account = { id: string; name: string; kind: string; initial_balance: number };
 export type Member = { user_id: string; display_name: string; role: string };
 
 /** Opções dos selects do formulário de lançamento (serializáveis para client components). */
 export type Option = { id: string; label: string; kind?: string };
-export type FormOptions = { categories: Option[]; accounts: Option[]; members: Option[]; myId: string };
+export type FormOptions = { categories: Option[]; accounts: Option[]; members: Option[]; myId: string; familyId: string };
 
 /** Usuário logado + família dele. Redireciona para login/onboarding quando falta algo. */
 export const getFamilyContext = cache(async () => {
@@ -30,7 +30,7 @@ export const getFamilyContext = cache(async () => {
 
 export const getCategories = cache(async () => {
   const { supabase, family } = await getFamilyContext();
-  const { data } = await supabase.from("categories").select("id, name, kind, color, parent_id").eq("family_id", family.id);
+  const { data } = await supabase.from("categories").select("id, name, kind, color, icon, parent_id").eq("family_id", family.id);
   return sortCategories((data ?? []) as Category[]);
 });
 
@@ -46,6 +46,7 @@ export const getFormOptions = cache(async (): Promise<FormOptions> => {
     accounts: (accounts ?? []).map((a) => ({ id: a.id, label: a.name })),
     members: (members ?? []).map((m) => ({ id: m.user_id, label: m.display_name })),
     myId: user.id,
+    familyId: family.id,
   };
 });
 

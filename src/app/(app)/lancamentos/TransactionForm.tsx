@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Paperclip } from "lucide-react";
+import { openReceipt, uploadReceipt } from "@/lib/receipts";
+import type { ActionResult } from "@/components/forms";
 import { addTransaction, updateTransaction } from "../actions";
 import { ActionForm, Field, SubmitButton } from "@/components/forms";
 import { PAYMENT_METHODS, localISODate } from "@/lib/format";
@@ -10,6 +12,7 @@ import type { FormOptions } from "@/lib/family";
 export type EditableTransaction = {
   id: string; kind: "income" | "expense"; amount: number; occurred_on: string; description: string | null;
   category_id: string | null; account_id: string | null; member_id: string | null; payment_method: string | null;
+  receipt_path?: string | null;
 };
 
 export default function TransactionForm({ options, initial, onDone, card = true }: {
@@ -20,10 +23,27 @@ export default function TransactionForm({ options, initial, onDone, card = true 
   const [frequency, setFrequency] = useState<"once" | "installments" | "monthly">("once");
   const installments = kind === "expense" && frequency === "installments";
   const today = localISODate();
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  // o arquivo sobe direto do navegador para o Storage; a action recebe só o caminho
+  async function submit(fd: FormData): Promise<ActionResult> {
+    const file = fd.get("receipt");
+    fd.delete("receipt");
+    if (file instanceof File && file.size > 0) {
+      try {
+        fd.set("receipt_path", await uploadReceipt(file, options.familyId));
+      } catch (e) {
+        return { ok: false, error: `Não foi possível enviar o comprovante (${(e as Error).message})` };
+      }
+    }
+    const result = await (initial ? updateTransaction : addTransaction)(fd);
+    if (result.ok) setFileName(null);
+    return result;
+  }
 
   return (
     <ActionForm
-      action={initial ? updateTransaction : addTransaction}
+      action={submit}
       onSuccess={onDone}
       reset={!initial}
       className={`grid gap-4 md:grid-cols-4 ${card ? "card" : ""}`}
@@ -102,6 +122,22 @@ export default function TransactionForm({ options, initial, onDone, card = true 
           {Object.entries(PAYMENT_METHODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
       </Field>
+      <div className="flex flex-wrap items-center gap-3 md:col-span-4">
+        <label className="btn-ghost cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-gold">
+          <Paperclip className="h-4 w-4" aria-hidden />
+          {fileName ?? (initial?.receipt_path ? "Trocar comprovante" : "Anexar comprovante")}
+          <input name="receipt" type="file" accept="image/*,application/pdf" className="sr-only"
+            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
+        </label>
+        {initial?.receipt_path && !fileName && (
+          <>
+            <button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => openReceipt(initial.receipt_path!)}>Ver atual</button>
+            <label className="inline-flex items-center gap-1.5 text-sm text-muted">
+              <input type="checkbox" name="remove_receipt" value="1" className="h-4 w-4 accent-[var(--loss)]" /> remover
+            </label>
+          </>
+        )}
+      </div>
       <div className="md:col-span-4">
         <SubmitButton className="btn w-full md:w-auto">{initial ? "Salvar alterações" : "Salvar lançamento"}</SubmitButton>
       </div>

@@ -1,16 +1,21 @@
 import { getFamilyContext, categoryLabel, sortCategories, type Category } from "@/lib/family";
 import { brl, ACCOUNT_KINDS } from "@/lib/format";
 import { ActionForm, DeleteButton, Field, SubmitButton } from "@/components/forms";
+import IconPicker from "@/components/IconPicker";
+import { loadFinance } from "@/lib/ops";
 import CopyCode from "./CopyCode";
+import CategoryEditor from "./CategoryEditor";
 import { addAccount, addCategory, deleteAccount, deleteCategory } from "../actions";
 
 export default async function ConfiguracoesPage() {
   const { supabase, family } = await getFamilyContext();
-  const [{ data: members }, { data: accounts }, { data: cats }] = await Promise.all([
+  const [{ data: members }, { data: accounts }, { data: cats }, fin] = await Promise.all([
     supabase.from("family_members").select("user_id, display_name, role").eq("family_id", family.id),
     supabase.from("accounts").select("id, name, kind, initial_balance").eq("family_id", family.id).order("name"),
-    supabase.from("categories").select("id, name, kind, color, parent_id").eq("family_id", family.id),
+    supabase.from("categories").select("id, name, kind, color, icon, parent_id").eq("family_id", family.id),
+    loadFinance(supabase, family.id, 1),
   ]);
+  const cardDebt = new Map(fin.cards.map((c) => [c.card.id, c.debt]));
   const categories = sortCategories((cats ?? []) as Category[]);
   const roots = categories.filter((c) => !c.parent_id);
 
@@ -37,10 +42,13 @@ export default async function ConfiguracoesPage() {
           <ul className="ledger text-sm">
             {(accounts ?? []).map((a) => (
               <li key={a.id} className="flex items-center justify-between gap-3 py-1.5">
-                <span>
+                <span className="min-w-0 flex-1">
                   {a.name}
                   <span className="block text-xs text-muted">{ACCOUNT_KINDS[a.kind]} · saldo inicial <span className="money">{brl(Number(a.initial_balance))}</span></span>
                 </span>
+                {a.kind === "credit_card"
+                  ? <span className="money text-right text-xs text-muted">a pagar<span className="block text-sm text-loss">{brl(cardDebt.get(a.id) ?? 0)}</span></span>
+                  : <span className="money text-right text-xs text-muted">saldo hoje<span className={`block text-sm ${(fin.balances.get(a.id) ?? 0) < 0 ? "text-loss" : "text-ink"}`}>{brl(fin.balances.get(a.id) ?? 0)}</span></span>}
                 <DeleteButton action={deleteAccount} id={a.id} what={`conta ${a.name}`} />
               </li>
             ))}
@@ -60,12 +68,15 @@ export default async function ConfiguracoesPage() {
         </section>
 
         <section className="card space-y-4">
-          <h2 className="display text-lg font-semibold">Categorias</h2>
+          <div>
+            <h2 className="display text-lg font-semibold">Categorias</h2>
+            <p className="text-xs text-muted">Toque no ícone para trocar ícone, cor ou nome.</p>
+          </div>
           <ul className="ledger max-h-96 overflow-y-auto text-sm">
             {categories.map((c) => (
               <li key={c.id} className="flex items-center justify-between gap-3 py-1">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} aria-hidden />
+                <span className="inline-flex items-center gap-2.5">
+                  <CategoryEditor category={c} />
                   {categoryLabel(c, categories)}
                   <span className={`text-xs ${c.kind === "income" ? "text-gain" : "text-loss"}`}>{c.kind === "income" ? "ganho" : "gasto"}</span>
                 </span>
@@ -89,6 +100,10 @@ export default async function ConfiguracoesPage() {
             <Field label="Cor">
               <input name="color" type="color" defaultValue="#8a94a6" className="input h-11 cursor-pointer p-1" />
             </Field>
+            <details className="sm:col-span-2">
+              <summary className="cursor-pointer py-1 text-sm text-muted">Escolher ícone</summary>
+              <div className="pt-2"><IconPicker /></div>
+            </details>
             <SubmitButton className="btn sm:col-span-2">Adicionar categoria</SubmitButton>
           </ActionForm>
         </section>

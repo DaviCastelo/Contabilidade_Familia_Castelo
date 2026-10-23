@@ -4,6 +4,7 @@ import { z } from "zod";
 import { categoryLabel, sortCategories, rootCategory, type Category } from "@/lib/family";
 import { ASSET_TYPES, ACCOUNT_KINDS, PAYMENT_METHODS, localISODate, monthRange } from "@/lib/format";
 import { createRecurring, createTransactions, findByName, loadFinance } from "@/lib/ops";
+import { loadGoals } from "@/lib/goals";
 
 /**
  * Ferramentas do assistente. Rodam com o cliente Supabase do usuário logado,
@@ -33,7 +34,7 @@ function tool<T extends z.ZodType>(name: string, label: string, description: str
 
 async function registry(ctx: ToolContext) {
   const [{ data: cats }, { data: accounts }, { data: members }] = await Promise.all([
-    ctx.supabase.from("categories").select("id, name, kind, color, parent_id").eq("family_id", ctx.familyId),
+    ctx.supabase.from("categories").select("id, name, kind, color, icon, parent_id").eq("family_id", ctx.familyId),
     ctx.supabase.from("accounts").select("id, name, kind, closing_day, due_day, credit_limit, pay_from_account_id").eq("family_id", ctx.familyId).order("name"),
     ctx.supabase.from("family_members").select("user_id, display_name").eq("family_id", ctx.familyId),
   ]);
@@ -371,6 +372,34 @@ tool("criar_conta", "Criou conta",
     });
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+tool("listar_metas", "Consultou metas",
+  "Metas da família e a reserva de emergência: guardado, alvo, quanto falta, quanto guardar por mês e meses de custo de vida cobertos.",
+  {}, [], z.object({}), false,
+  async (_, ctx) => {
+    const { emergency, goals, monthlyCost } = await loadGoals(ctx.supabase, ctx.familyId);
+    const view = (g: NonNullable<typeof emergency>) => ({ nome: g.name, guardado: two(g.saved), alvo: g.target == null ? null : two(g.target), falta: g.remaining == null ? null : two(g.remaining),
+      percentual: Math.round(g.pct), data_alvo: g.targetDate, guardar_por_mes_para_a_data: g.perMonthNeeded == null ? null : two(g.perMonthNeeded),
+      previsao_no_ritmo_atual: g.eta, acompanha_investimento: g.investmentName });
+    return {
+      custo_de_vida_medio_mensal: monthlyCost == null ? null : two(monthlyCost),
+      reserva_de_emergencia: emergency ? { ...view(emergency), meses_cobertos: emergency.monthsCovered == null ? null : Math.round(emergency.monthsCovered * 10) / 10, meses_alvo: emergency.emergencyMonths } : null,
+      metas: goals.map(view),
+    };
+  });
+
+tool("guardar_na_meta", "Guardou na meta",
+  "Registra um depósito (ou retirada, com valor negativo) numa meta ou na reserva de emergência. Não funciona em metas que acompanham um investimento (nesse caso use movimentar_investimento).",
+  { meta: { ...S, description: "nome da meta; 'reserva' para a reserva de emergência" }, valor: { ...N, description: "positivo guarda, negativo retira" } }, ["meta", "valor"],
+  z.object({ meta: z.string(), valor: z.coerce.number().refine((v) => v !== 0, "valor não pode ser zero") }), true,
+  async ({ meta, valor }, ctx) => {
+    const { data } = await ctx.supabase.from("goals").select("id, name, is_emergency, investment_id").eq("family_id", ctx.familyId);
+    const goal = findByName(data ?? [], meta, (g) => [g.name, ...(g.is_emergency ? ["reserva", "reserva de emergencia"] : [])], "Meta");
+    if (goal.investment_id) throw new Error(`A meta "${goal.name}" acompanha um investimento; registre um aporte nele.`);
+    const { error } = await ctx.supabase.from("goal_contributions").insert({ goal_id: goal.id, family_id: ctx.familyId, amount: valor, occurred_on: localISODate() });
+    if (error) throw new Error(error.message);
+    return { ok: true, meta: goal.name };
   });
 
 // ---------- exportação ----------
