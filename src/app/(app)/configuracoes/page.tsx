@@ -1,5 +1,7 @@
 import { getFamilyContext, categoryLabel, sortCategories, type Category } from "@/lib/family";
 import { brl, ACCOUNT_KINDS } from "@/lib/format";
+import { ActionForm, DeleteButton, Field, SubmitButton } from "@/components/forms";
+import CopyCode from "./CopyCode";
 import { addAccount, addCategory, deleteAccount, deleteCategory } from "../actions";
 
 export default async function ConfiguracoesPage() {
@@ -13,62 +15,83 @@ export default async function ConfiguracoesPage() {
   const roots = categories.filter((c) => !c.parent_id);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Configurações</h1>
+    <div className="space-y-5">
+      <h1 className="display text-3xl font-semibold">Ajustes</h1>
 
-      <div className="card">
-        <h2 className="font-semibold">Família</h2>
-        <p className="mt-1 text-sm text-slate-500">Para convidar alguém, peça para a pessoa criar uma conta e usar o código:</p>
-        <p className="mt-2 inline-block rounded-lg bg-slate-100 px-3 py-1.5 font-mono text-lg tracking-widest">{family.invite_code}</p>
-        <ul className="mt-3 text-sm">
-          {(members ?? []).map((m) => <li key={m.user_id}>{m.display_name} {m.role === "owner" && <span className="text-xs text-slate-400">(criador)</span>}</li>)}
+      <section className="card space-y-3">
+        <h2 className="display text-lg font-semibold">Família</h2>
+        <p className="text-muted">Para convidar alguém, peça para a pessoa criar uma conta e usar este código:</p>
+        <CopyCode code={family.invite_code} />
+        <ul className="ledger text-sm">
+          {(members ?? []).map((m) => (
+            <li key={m.user_id} className="py-2">
+              {m.display_name} {m.role === "owner" && <span className="text-xs text-muted">· criou a família</span>}
+            </li>
+          ))}
         </ul>
-      </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card space-y-3">
-          <h2 className="font-semibold">Contas e cartões</h2>
-          <ul className="divide-y divide-slate-100 text-sm">
+        <section className="card space-y-4">
+          <h2 className="display text-lg font-semibold">Contas e cartões</h2>
+          <ul className="ledger text-sm">
             {(accounts ?? []).map((a) => (
-              <li key={a.id} className="flex items-center justify-between py-2">
-                <span>{a.name} <span className="text-xs text-slate-400">· {ACCOUNT_KINDS[a.kind]} · saldo inicial {brl(Number(a.initial_balance))}</span></span>
-                <form action={deleteAccount}><input type="hidden" name="id" value={a.id} /><button className="btn-ghost text-xs text-slate-400 hover:text-red-600">✕</button></form>
-              </li>
-            ))}
-          </ul>
-          <form action={addAccount} className="grid gap-2 sm:grid-cols-2">
-            <input name="name" placeholder="Nome (ex: Itaú, Nubank)" required className="input" />
-            <select name="kind" className="input">{Object.entries(ACCOUNT_KINDS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-            <input name="initial_balance" type="number" step="0.01" placeholder="Saldo inicial" className="input" />
-            <button className="btn">Adicionar conta</button>
-          </form>
-        </div>
-
-        <div className="card space-y-3">
-          <h2 className="font-semibold">Categorias</h2>
-          <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto text-sm">
-            {categories.map((c) => (
-              <li key={c.id} className="flex items-center justify-between py-1.5">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ background: c.color }} />
-                  {categoryLabel(c, categories)}
-                  <span className={`text-xs ${c.kind === "income" ? "text-emerald-600" : "text-red-500"}`}>{c.kind === "income" ? "ganho" : "gasto"}</span>
+              <li key={a.id} className="flex items-center justify-between gap-3 py-1.5">
+                <span>
+                  {a.name}
+                  <span className="block text-xs text-muted">{ACCOUNT_KINDS[a.kind]} · saldo inicial <span className="money">{brl(Number(a.initial_balance))}</span></span>
                 </span>
-                <form action={deleteCategory}><input type="hidden" name="id" value={c.id} /><button className="btn-ghost text-xs text-slate-400 hover:text-red-600">✕</button></form>
+                <DeleteButton action={deleteAccount} id={a.id} what={`conta ${a.name}`} />
               </li>
             ))}
           </ul>
-          <form action={addCategory} className="grid gap-2 sm:grid-cols-2">
-            <input name="name" placeholder="Nome da categoria" required className="input" />
-            <select name="parent_id" className="input">
-              <option value="">— Categoria principal —</option>
-              {roots.map((r) => <option key={r.id} value={r.id}>Dentro de: {r.name}</option>)}
-            </select>
-            <select name="kind" className="input"><option value="expense">Gasto</option><option value="income">Ganho</option></select>
-            <input name="color" type="color" defaultValue="#64748b" className="input h-10 p-1" />
-            <button className="btn sm:col-span-2">Adicionar categoria</button>
-          </form>
-        </div>
+          <ActionForm action={addAccount} className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nome">
+              <input name="name" placeholder="Ex: Itaú, Nubank" required className="input" />
+            </Field>
+            <Field label="Tipo">
+              <select name="kind" className="input">{Object.entries(ACCOUNT_KINDS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            </Field>
+            <Field label="Saldo inicial (R$)">
+              <input name="initial_balance" type="number" inputMode="decimal" step="0.01" placeholder="0,00" className="input money" />
+            </Field>
+            <div className="flex items-end"><SubmitButton className="btn w-full">Adicionar conta</SubmitButton></div>
+          </ActionForm>
+        </section>
+
+        <section className="card space-y-4">
+          <h2 className="display text-lg font-semibold">Categorias</h2>
+          <ul className="ledger max-h-96 overflow-y-auto text-sm">
+            {categories.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-3 py-1">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} aria-hidden />
+                  {categoryLabel(c, categories)}
+                  <span className={`text-xs ${c.kind === "income" ? "text-gain" : "text-loss"}`}>{c.kind === "income" ? "ganho" : "gasto"}</span>
+                </span>
+                <DeleteButton action={deleteCategory} id={c.id} what={`categoria ${c.name}`} />
+              </li>
+            ))}
+          </ul>
+          <ActionForm action={addCategory} className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nome">
+              <input name="name" placeholder="Ex: Pets" required className="input" />
+            </Field>
+            <Field label="Dentro de">
+              <select name="parent_id" className="input">
+                <option value="">Nenhuma (categoria principal)</option>
+                {roots.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Tipo">
+              <select name="kind" className="input"><option value="expense">Gasto</option><option value="income">Ganho</option></select>
+            </Field>
+            <Field label="Cor">
+              <input name="color" type="color" defaultValue="#78716c" className="input h-11 cursor-pointer p-1" />
+            </Field>
+            <SubmitButton className="btn sm:col-span-2">Adicionar categoria</SubmitButton>
+          </ActionForm>
+        </section>
       </div>
     </div>
   );

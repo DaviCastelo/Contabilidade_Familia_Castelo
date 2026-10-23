@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { getFamilyContext, type Category } from "@/lib/family";
 import { brl, monthRange, currentMonth, monthLabel } from "@/lib/format";
 import MonthPicker from "@/components/MonthPicker";
+import Amount from "@/components/Amount";
 import { CategoryPie, MonthlyBars } from "@/components/Charts";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
@@ -40,7 +42,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   for (const t of expenses) {
     const root = rootOf(t.category_id);
     const key = root?.id ?? "none";
-    const cur = byCat.get(key) ?? { name: root?.name ?? "Sem categoria", color: root?.color ?? "#94a3b8", value: 0 };
+    const cur = byCat.get(key) ?? { name: root?.name ?? "Sem categoria", color: root?.color ?? "#78716c", value: 0 };
     cur.value += Number(t.amount);
     byCat.set(key, cur);
   }
@@ -61,64 +63,84 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     + sum((allTx ?? []).filter((t) => t.kind === "income")) - sum((allTx ?? []).filter((t) => t.kind === "expense"));
 
   const budgetTotal = sum(budgets ?? []);
+  const balance = income - expense;
   const biggest = [...expenses].sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 5);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold capitalize">{monthLabel(month)}</h1>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="label">Resumo de</p>
+          <h1 className="display text-3xl font-semibold capitalize">{monthLabel(month)}</h1>
+        </div>
         <MonthPicker month={month} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Ganhos no mês" value={brl(income)} tone="text-emerald-600" />
-        <Stat label="Gastos no mês" value={brl(expense)} tone="text-red-600"
-          hint={budgetTotal ? `${Math.round((expense / budgetTotal) * 100)}% do orçamento (${brl(budgetTotal)})` : undefined} />
-        <Stat label="Saldo do mês" value={brl(income - expense)} tone={income - expense >= 0 ? "text-emerald-600" : "text-red-600"} />
-        <Stat label="Patrimônio" value={brl(cash + invested)} hint={`${brl(cash)} em contas · ${brl(invested)} investidos`} />
+      {/* patrimônio em destaque, como a linha de total de um livro-caixa */}
+      <section className="rise card flex flex-wrap items-end justify-between gap-4 border-ink/15">
+        <div>
+          <p className="label">Patrimônio da família</p>
+          <p className="display money text-4xl font-semibold sm:text-5xl">{brl(cash + invested)}</p>
+        </div>
+        <p className="text-sm text-muted">
+          <span className="money text-ink">{brl(cash)}</span> em contas · <span className="money text-ink">{brl(invested)}</span> investidos
+        </p>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Ganhos no mês" value={brl(income)} tone="text-gain" delay={60} />
+        <Stat label="Gastos no mês" value={brl(expense)} tone="text-loss" delay={120}
+          hint={budgetTotal ? `${Math.round((expense / budgetTotal) * 100)}% do orçamento de ${brl(budgetTotal)}` : undefined} />
+        <Stat label="Sobrou no mês" value={brl(balance)} tone={balance >= 0 ? "text-ink" : "text-loss"} delay={180} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card">
-          <h2 className="mb-2 font-semibold">Gastos por categoria</h2>
+        <section className="card">
+          <h2 className="display mb-2 text-lg font-semibold">Gastos por categoria</h2>
           {pie.length ? <CategoryPie data={pie} /> : <Empty />}
-        </div>
-        <div className="card">
-          <h2 className="mb-2 font-semibold">Ganhos × gastos (6 meses)</h2>
+        </section>
+        <section className="card">
+          <h2 className="display mb-2 text-lg font-semibold">Ganhos × gastos, últimos 6 meses</h2>
           <MonthlyBars data={bars} />
-        </div>
+        </section>
       </div>
 
-      <div className="card">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold">Maiores gastos do mês</h2>
-          <Link href={`/lancamentos?mes=${month}`} className="text-sm text-emerald-700 hover:underline">Ver todos →</Link>
+      <section className="card">
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="display text-lg font-semibold">Maiores gastos do mês</h2>
+          <Link href={`/lancamentos?mes=${month}`} className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent hover:underline">
+            Ver todos <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
         </div>
         {biggest.length ? (
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="ledger text-sm">
             {biggest.map((t, i) => (
-              <li key={i} className="flex justify-between py-2">
-                <span>{t.description ?? catById.get(t.category_id ?? "")?.name ?? "Gasto"}</span>
-                <span className="font-medium text-red-600">{brl(Number(t.amount))}</span>
+              <li key={i} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="truncate">{t.description ?? catById.get(t.category_id ?? "")?.name ?? "Gasto"}</span>
+                <Amount kind="expense" value={Number(t.amount)} />
               </li>
             ))}
           </ul>
         ) : <Empty />}
-      </div>
+      </section>
     </div>
   );
 }
 
-function Stat({ label, value, tone = "", hint }: { label: string; value: string; tone?: string; hint?: string }) {
+function Stat({ label, value, tone = "", hint, delay = 0 }: { label: string; value: string; tone?: string; hint?: string; delay?: number }) {
   return (
-    <div className="card">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${tone}`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+    <div className="rise card" style={{ animationDelay: `${delay}ms` }}>
+      <p className="label">{label}</p>
+      <p className={`money mt-1 text-2xl font-medium ${tone}`}>{value}</p>
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
 
 function Empty() {
-  return <p className="py-8 text-center text-sm text-slate-400">Sem dados ainda. <Link href="/lancamentos" className="text-emerald-700 hover:underline">Lance algo</Link>.</p>;
+  return (
+    <p className="py-10 text-center text-sm text-muted">
+      Sem dados ainda. <Link href="/lancamentos" className="font-medium text-accent hover:underline">Registre o primeiro lançamento</Link>.
+    </p>
+  );
 }

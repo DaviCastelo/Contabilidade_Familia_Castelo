@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function createFamily(_: unknown, formData: FormData) {
+export async function createFamily(_: { error: string } | null, formData: FormData): Promise<{ error: string } | null> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_family", {
     family_name: String(formData.get("family_name")),
@@ -13,7 +13,7 @@ export async function createFamily(_: unknown, formData: FormData) {
   redirect("/");
 }
 
-export async function joinFamily(_: unknown, formData: FormData) {
+export async function joinFamily(_: { error: string } | null, formData: FormData): Promise<{ error: string } | null> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("join_family", {
     code: String(formData.get("code")),

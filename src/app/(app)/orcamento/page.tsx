@@ -1,6 +1,7 @@
 import { getFamilyContext, type Category } from "@/lib/family";
 import { brl, monthRange, currentMonth } from "@/lib/format";
 import MonthPicker from "@/components/MonthPicker";
+import { ActionForm, SubmitButton } from "@/components/forms";
 import { setBudget } from "../actions";
 
 export default async function OrcamentoPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
@@ -30,41 +31,54 @@ export default async function OrcamentoPage({ searchParams }: { searchParams: Pr
   const totalSpent = [...spent.values()].reduce((s, v) => s + v, 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Orçamento</h1>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="display text-3xl font-semibold">Orçamento</h1>
         <MonthPicker month={month} />
       </div>
-      <p className="text-sm text-slate-500">
-        Defina um limite por categoria (subcategorias somam no pai). Total: <b>{brl(totalSpent)}</b> de <b>{brl(totalBudget)}</b>.
+      <p className="text-muted">
+        Defina um limite por categoria; subcategorias somam no grupo principal. Usado até agora:{" "}
+        <b className="money text-ink">{brl(totalSpent)}</b> de <b className="money text-ink">{brl(totalBudget)}</b>.
       </p>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {roots.map((c) => {
           const limit = budgetOf.get(c.id) ?? 0;
           const used = spent.get(c.id) ?? 0;
-          const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
-          const over = limit > 0 && used > limit;
+          const ratio = limit ? used / limit : 0;
+          const status = !limit ? null : ratio > 1 ? "over" : ratio > 0.8 ? "near" : "ok";
+          const bar = { over: "bg-loss", near: "bg-warn", ok: "bg-gain" }[status ?? "ok"];
+          const statusText = { over: `Estourou em ${brl(used - limit)}`, near: "Perto do limite", ok: `Restam ${brl(limit - used)}` };
           return (
-            <div key={c.id} className="card space-y-2">
-              <div className="flex items-center justify-between">
+            <div key={c.id} className="card space-y-3">
+              <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex items-center gap-2 font-medium">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />{c.name}
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} aria-hidden />{c.name}
                 </span>
-                <span className={`text-sm ${over ? "font-semibold text-red-600" : "text-slate-600"}`}>
-                  {brl(used)} {limit ? `/ ${brl(limit)}` : ""}
+                <span className="money text-sm text-muted">
+                  <span className={status === "over" ? "font-semibold text-loss" : "text-ink"}>{brl(used)}</span>
+                  {limit ? ` / ${brl(limit)}` : ""}
                 </span>
               </div>
               {limit > 0 && (
-                <div className="h-2 rounded-full bg-slate-100">
-                  <div className={`h-2 rounded-full ${over ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
+                <div>
+                  <div className="h-2 rounded-full bg-sunken" role="progressbar" aria-label={`Uso do orçamento de ${c.name}`}
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(ratio, 1) * 100)}>
+                    <div className={`h-2 rounded-full ${bar}`} style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+                  </div>
+                  <p className={`mt-1 text-xs ${status === "over" ? "text-loss" : status === "near" ? "text-warn" : "text-muted"}`}>
+                    {statusText[status!]}
+                  </p>
                 </div>
               )}
-              <form action={setBudget} className="flex gap-2">
+              <ActionForm action={setBudget} reset={false} className="flex gap-2">
                 <input type="hidden" name="category_id" value={c.id} />
                 <input type="hidden" name="month" value={month} />
-                <input name="amount" type="number" step="0.01" min="0" defaultValue={limit || ""} placeholder="Limite (R$)" className="input" />
-                <button className="btn-ghost border border-slate-200">Salvar</button>
-              </form>
+                <label className="flex-1">
+                  <span className="sr-only">Limite mensal para {c.name} (R$)</span>
+                  <input name="amount" type="number" inputMode="decimal" step="0.01" min="0" defaultValue={limit || ""} placeholder="Limite (R$)" className="input money" />
+                </label>
+                <SubmitButton className="btn-ghost" pendingText="…">Salvar</SubmitButton>
+              </ActionForm>
             </div>
           );
         })}

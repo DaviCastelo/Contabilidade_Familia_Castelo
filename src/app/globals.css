@@ -1,27 +1,104 @@
 @import "tailwindcss";
 
+/* Livro-caixa da família: papel quente, tinta escura, verde-garrafa e terracota */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --paper: #f7f4ee;
+  --surface: #fffdf9;
+  --sunken: #efeae0;
+  --ink: #1c1917;
+  --muted: #57534e;
+  --line: #e2dacb;
+  --gain: #2f6b4f;
+  --gain-soft: #e3efe7;
+  --loss: #a8471f;
+  --loss-soft: #f6e4da;
+  --warn: #9a6412;
+  --accent: #1f4d3a;
+  --accent-hover: #173b2c;
+  --accent-ink: #fffdf9;
+  --focus: #2f6b4f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #13110e;
+    --surface: #1c1915;
+    --sunken: #26221d;
+    --ink: #f2ede4;
+    --muted: #b3aca3;
+    --line: #37312a;
+    --gain: #86c9a5;
+    --gain-soft: #1d2e25;
+    --loss: #ec9a74;
+    --loss-soft: #3a2419;
+    --warn: #e2b866;
+    --accent: #86c9a5;
+    --accent-hover: #a3d9bb;
+    --accent-ink: #13110e;
+    --focus: #86c9a5;
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-gain: var(--gain);
+  --color-gain-soft: var(--gain-soft);
+  --color-loss: var(--loss);
+  --color-loss-soft: var(--loss-soft);
+  --color-warn: var(--warn);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-plex), system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 @layer components {
-  .card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm; }
-  .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100; }
-  .label { @apply mb-1 block text-xs font-medium text-slate-600; }
-  .btn { @apply inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50; }
-  .btn-ghost { @apply inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100; }
+  .card { @apply rounded-xl border border-line bg-surface p-5; }
+  .input {
+    @apply min-h-11 w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink outline-none transition-colors duration-150 placeholder:text-muted/70 focus:border-accent md:text-sm;
+  }
+  .label { @apply mb-1 block text-xs font-medium tracking-wide text-muted uppercase; }
+  .btn {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-ink transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line px-3 text-sm text-ink transition-colors duration-150 hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .icon-btn {
+    @apply inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-sunken hover:text-ink;
+  }
+  .money { @apply font-mono tabular-nums; }
+  .display { @apply font-display tracking-tight; }
+  /* régua fina de livro contábil */
+  .ledger > * + * { @apply border-t border-line; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 320ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
